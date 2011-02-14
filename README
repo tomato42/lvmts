@@ -1,0 +1,4 @@
+Application for monitoring LVM volumes and moving blocks based on usage to 
+higher or lower tier storage.
+
+ATM quite rudimentary, more of a helper script.
