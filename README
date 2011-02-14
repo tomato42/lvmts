@@ -2,3 +2,13 @@ Application for monitoring LVM volumes and moving blocks based on usage to
 higher or lower tier storage.
 
 ATM quite rudimentary, more of a helper script.
+
+to compile:
+gcc -std=gnu99 -Wall lvmtsd.c -o lvmtsd
+
+lvmtsd is used like this:
+btrace -t -a complete /dev/vol-grp00/log-vol00 | awk ' {print $7, $8/(2*4*1024), ($8+$10)/(2*4*1024)} ' | ./lvmtsd
+
+It will dump collected data (including 200 most active, most written and most
+read blocks in format read to use with pvmove) when the pipe is broken (killall
+blktrace).
