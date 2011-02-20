@@ -12,3 +12,10 @@ btrace -t -a complete /dev/vol-grp00/log-vol00 | awk ' {print $7, $8/(2*4*1024),
 It will dump collected data (including 200 most active, most written and most
 read blocks in format ready to use with pvmove) when the pipe is broken (killall
 blktrace).
+
+
+To compile lvmls:
+gcc -llvm2cmd lvmls.c -o lvmls -std=gnu99 -Wall
+
+lvmls is test code for parsing pvs output, extracting PV extent to LV extent 
+allocations.
