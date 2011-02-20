@@ -20,6 +20,35 @@ struct pv_allocations {
 struct pv_allocations *pv_segments=NULL;
 size_t pv_segments_num=0;
 
+int _compare_segments(const void *a, const void *b)
+{
+  struct pv_allocations *alloc_a, *alloc_b;
+  int r;
+
+  alloc_a = (struct pv_allocations *)a;
+  alloc_b = (struct pv_allocations *)b;
+
+  r = strcmp(alloc_a->vg_name, alloc_b->vg_name);
+  if(r != 0)
+      return r;
+
+  r = strcmp(alloc_a->lv_name, alloc_b->lv_name);
+  if(r != 0)
+      return r;
+
+  if (alloc_a->lv_start == alloc_b->lv_start)
+      return 0;
+  else if (alloc_a->lv_start < alloc_b->lv_start)
+      return -1;
+  else
+      return 1;
+}
+
+void sort_segments(struct pv_allocations *segments, size_t nmemb)
+{
+    qsort(segments, nmemb, sizeof(struct pv_allocations), _compare_segments);    
+}
+
 void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
     char *lv_name, char *pv_type, uint64_t pv_start, uint64_t pv_length, 
     uint64_t lv_start)
@@ -146,7 +175,8 @@ int main(int argc, char **argv)
 
         if (r)
           fprintf(stderr, "command failed\n");
-        /* More commands here */
+
+        sort_segments(pv_segments, pv_segments_num);
 
         if (argc > 1)
             for(int i=0; i < pv_segments_num; i++) 
@@ -156,7 +186,6 @@ int main(int argc, char **argv)
                         pv_segments[i].pv_start+pv_segments[i].pv_length,
                         pv_segments[i].lv_start,
                         pv_segments[i].lv_start+pv_segments[i].pv_length);
-            
 
         lvm2_exit(handle);
 
