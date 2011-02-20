@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// continuous extent allocation
+// information about continuous extent allocations
 struct pv_allocations {
     char *pv_name;
     char *vg_name;
@@ -37,6 +37,7 @@ struct pv_allocations {
 struct pv_allocations *pv_segments=NULL;
 size_t pv_segments_num=0;
 
+// helper function to qsort, used to sort phisical extents
 int _compare_segments(const void *a, const void *b)
 {
   struct pv_allocations *alloc_a, *alloc_b;
@@ -66,6 +67,7 @@ void sort_segments(struct pv_allocations *segments, size_t nmemb)
     qsort(segments, nmemb, sizeof(struct pv_allocations), _compare_segments);    
 }
 
+// add information about physical segment to global variable pv_segments
 void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
     char *lv_name, char *pv_type, uint64_t pv_start, uint64_t pv_length, 
     uint64_t lv_start)
@@ -122,6 +124,8 @@ segment_failure:
 #undef str_copy_alloc
 }
 
+// helper funcion for lvm2cmd, used to parse mappings between
+// logical extents and physical extents
 void parse_cmd_output(int level, const char *file, int line,
                  int dm_errno, const char *format)
 {
@@ -182,6 +186,9 @@ struct pv_info {
     uint64_t start_seg;
 };
 
+// convert logical extent from logical volume specified by lv_name, 
+// vg_name and logical extent number (le_num) to physical extent
+// on specific device
 struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
 {
     for(size_t i=0; i < pv_segments_num; i++) { // TODO use binary search
