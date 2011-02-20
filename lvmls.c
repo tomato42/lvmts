@@ -126,7 +126,7 @@ segment_failure:
 
 // helper funcion for lvm2cmd, used to parse mappings between
 // logical extents and physical extents
-void parse_cmd_output(int level, const char *file, int line,
+void parse_pvs_segments(int level, const char *file, int line,
                  int dm_errno, const char *format)
 {
       // disregard debug output
@@ -225,38 +225,187 @@ struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
     return NULL;
 }
 
+struct vg_pe_sizes {
+    char *vg_name;
+    uint64_t pe_size;
+};
+
+struct vg_pe_sizes *vg_pe_sizes = NULL;
+size_t vg_pe_sizes_len = 0;
+
+// parse output from lvm2cmd about extent sizes
+void parse_vgs_pe_size(int level, const char *file, int line,
+                 int dm_errno, const char *format)
+{
+    // disregard debug output
+    if (level != 4)
+      return;
+
+    char vg_name[4096], pe_size[4096];
+    uint64_t pe_size_bytes=0;
+    int r;
+
+    r = sscanf(format, " %4095s %4095s ", vg_name, pe_size);
+    if (r == EOF || r != 2) {
+        fprintf(stderr, "%s:%i Error parsing line %i: %s\n",
+            __FILE__, __LINE__, line, format);
+        return;
+    }
+
+    double temp;
+    char *tail;
+    
+    temp = strtod(pe_size, &tail);
+    if (temp == 0.0) {
+        fprintf(stderr, "%s:%i Error parsing line %i: %s\n",
+            __FILE__, __LINE__, line, format);
+        return;
+    }
+
+    switch(tail[0]){
+        case 'k':
+        case 'K':
+            pe_size_bytes = temp * 1024;
+            break;
+        case 'm':
+        case 'M':
+            pe_size_bytes = temp * 1024 * 1024;
+            break;
+        case 'g':
+        case 'G':
+            pe_size_bytes = temp * 1024 * 1024 * 1024;
+            break;
+        default:
+            pe_size_bytes = temp;
+            /* break; */
+    }
+
+    if (vg_pe_sizes_len == 0) {
+        vg_pe_sizes = malloc(sizeof(struct vg_pe_sizes));
+        if (!vg_pe_sizes)
+            goto vgs_failure;
+
+        vg_pe_sizes[0].vg_name = malloc(strlen(vg_name)+1);
+        if (!vg_pe_sizes[0].vg_name)
+            goto vgs_failure;
+        
+        strcpy(vg_pe_sizes[0].vg_name, vg_name);
+        vg_pe_sizes[0].pe_size = pe_size_bytes;
+
+        vg_pe_sizes_len=1;
+
+        return;
+    }
+
+    vg_pe_sizes = realloc(vg_pe_sizes, sizeof(struct vg_pe_sizes)*
+        (vg_pe_sizes_len+1));
+    if (!vg_pe_sizes)
+        goto vgs_failure;
+
+    vg_pe_sizes[vg_pe_sizes_len].vg_name = malloc(strlen(vg_name)+1);
+    if(!vg_pe_sizes[vg_pe_sizes_len].vg_name)
+        goto vgs_failure;
+    strcpy(vg_pe_sizes[vg_pe_sizes_len].vg_name, vg_name);
+    vg_pe_sizes[vg_pe_sizes_len].pe_size = pe_size_bytes;
+
+    vg_pe_sizes_len+=1;
+
+    return;
+
+vgs_failure:
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
+}
+
+// return size of extents in provided volume group
+uint64_t get_pe_size(char *vg_name)
+{
+    for(size_t i=0; i<vg_pe_sizes_len; i++)
+        if (!strcmp(vg_pe_sizes[i].vg_name, vg_name))
+            return vg_pe_sizes[i].pe_size;
+    return 0;
+}
+
+// free allocated memory and objects
+void le_to_pe_exit()
+{
+    for(size_t i=0; i<pv_segments_num; i++){
+        free(pv_segments[i].pv_name);
+        free(pv_segments[i].vg_name);
+        free(pv_segments[i].vg_format);
+        free(pv_segments[i].vg_attr);
+        free(pv_segments[i].lv_name);
+        free(pv_segments[i].pv_type);
+    }
+    free(pv_segments);
+    pv_segments = NULL;
+    pv_segments_num = 0;
+
+    for(size_t i=0; i<vg_pe_sizes_len; i++)
+        free(vg_pe_sizes[i].vg_name);
+    
+    free(vg_pe_sizes);
+    vg_pe_sizes = NULL;
+    vg_pe_sizes_len = 0;
+}
+
+// initialize or reload cache variables
+void init_le_to_pe()
+{
+    void *handle;
+    int r;
+
+    if(pv_segments)
+        le_to_pe_exit();
+
+    lvm2_log_fn(parse_pvs_segments);
+
+    handle = lvm2_init();
+
+    lvm2_log_level(handle, 1);
+    r = lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
+        "seg_start_pe,segtype");
+
+    if (r)
+      fprintf(stderr, "command failed\n");
+
+    sort_segments(pv_segments, pv_segments_num);
+    
+    lvm2_log_fn(parse_vgs_pe_size);
+
+    r = lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings");
+
+    lvm2_exit(handle);
+
+    return;
+}
+
 int main(int argc, char **argv)
 {
-        void *handle;
-        int r;
+    init_le_to_pe();
 
-        lvm2_log_fn(parse_cmd_output);
+    if (argc <= 1)
+      return 0;
 
-        handle = lvm2_init();
+    for(int i=0; i < pv_segments_num; i++) 
+        if(!strcmp(pv_segments[i].lv_name, argv[1]))
+            printf("%s %li-%li (%li-%li)\n", pv_segments[i].pv_name,
+                pv_segments[i].pv_start, 
+                pv_segments[i].pv_start+pv_segments[i].pv_length,
+                pv_segments[i].lv_start,
+                pv_segments[i].lv_start+pv_segments[i].pv_length);
 
-        lvm2_log_level(handle, 1);
-        r = lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
-            "seg_start_pe,segtype");
+    struct pv_info *pv_info;
+    pv_info = LE_to_PE("laptom", argv[1], 49070);
+    if (pv_info)
+        printf("LE no 49070 of laptom-%s is at: %s:%li\n", argv[1],
+            pv_info->pv_name, pv_info->start_seg);
+    else
+        printf("no LE found\n");
 
-        if (r)
-          fprintf(stderr, "command failed\n");
+    printf("vg: laptom, extent size: %lu bytes\n", get_pe_size("laptom"));
 
-        sort_segments(pv_segments, pv_segments_num);
+    le_to_pe_exit();
 
-        if (argc > 1)
-            for(int i=0; i < pv_segments_num; i++) 
-                if(!strcmp(pv_segments[i].lv_name, argv[1]))
-                    printf("%s %li-%li (%li-%li)\n", pv_segments[i].pv_name,
-                        pv_segments[i].pv_start, 
-                        pv_segments[i].pv_start+pv_segments[i].pv_length,
-                        pv_segments[i].lv_start,
-                        pv_segments[i].lv_start+pv_segments[i].pv_length);
-
-        struct pv_info *pv_info;
-        pv_info = LE_to_PE("laptom", "btrfs", 49070);
-        printf("LE no 49070 of laptom-btrfs is at: %s:%li\n", pv_info->pv_name, pv_info->start_seg);
-
-        lvm2_exit(handle);
-
-        return r;
+    return 0;
 }
