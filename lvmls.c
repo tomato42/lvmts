@@ -207,7 +207,7 @@ struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
                 }
 
                 pv_info->pv_name = malloc(sizeof(char)
-                    *strlen(pv_segments[i].pv_name));
+                    *(strlen(pv_segments[i].pv_name)+1));
                 if (!pv_info->pv_name) {
                     fprintf(stderr, "Out of memory\n");
                     exit(1);
