@@ -177,6 +177,47 @@ parse_error:
       return;
 }
 
+struct pv_info {
+    char *pv_name;
+    uint64_t start_seg;
+};
+
+struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
+{
+    for(size_t i=0; i < pv_segments_num; i++) { // TODO use binary search
+        if(!strcmp(pv_segments[i].vg_name, vg_name) && 
+            !strcmp(pv_segments[i].lv_name, lv_name)) {
+
+            if (le_num >= pv_segments[i].lv_start &&
+                le_num < pv_segments[i].lv_start+pv_segments[i].pv_length) {
+
+                struct pv_info *pv_info;
+                
+                pv_info = malloc(sizeof(struct pv_info));
+                if (!pv_info) {
+                    fprintf(stderr, "Out of memory\n");
+                    exit(1);
+                }
+
+                pv_info->pv_name = malloc(sizeof(char)
+                    *strlen(pv_segments[i].pv_name));
+                if (!pv_info->pv_name) {
+                    fprintf(stderr, "Out of memory\n");
+                    exit(1);
+                }
+
+                strcpy(pv_info->pv_name,pv_segments[i].pv_name);
+
+                pv_info->start_seg = pv_segments[i].pv_start + 
+                  (le_num - pv_segments[i].lv_start);
+
+                return pv_info;
+            }
+        }
+    }
+    return NULL;
+}
+
 int main(int argc, char **argv)
 {
         void *handle;
@@ -203,6 +244,10 @@ int main(int argc, char **argv)
                         pv_segments[i].pv_start+pv_segments[i].pv_length,
                         pv_segments[i].lv_start,
                         pv_segments[i].lv_start+pv_segments[i].pv_length);
+
+        struct pv_info *pv_info;
+        pv_info = LE_to_PE("laptom", "btrfs", 49070);
+        printf("LE no 49070 of laptom-btrfs is at: %s:%li\n", pv_info->pv_name, pv_info->start_seg);
 
         lvm2_exit(handle);
 
