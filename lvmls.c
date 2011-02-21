@@ -169,11 +169,11 @@ void parse_pvs_segments(int level, const char *file, int line,
         pv_start, pv_length, lv_start);
 
     // DEBUG
-    printf("matched %i fields:", r);
+//    printf("matched %i fields:", r);
 
-    printf("%s,%s,%s,%s,%s,%s,%i,%i,%s,%i,%s\n",
-        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free, 
-        pv_start, pv_length, lv_name, lv_start, pv_type);
+//    printf("%s,%s,%s,%s,%s,%s,%i,%i,%s,%i,%s\n",
+//        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free, 
+//        pv_start, pv_length, lv_name, lv_start, pv_type);
 
     // DEBUG
     //printf("%s\n", format);
@@ -368,8 +368,8 @@ void init_le_to_pe()
     r = lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
         "seg_start_pe,segtype");
 
-    if (r)
-      fprintf(stderr, "command failed\n");
+//    if (r)
+//      fprintf(stderr, "command failed\n");
 
     sort_segments(pv_segments, pv_segments_num);
     
