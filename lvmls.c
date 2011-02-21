@@ -397,10 +397,12 @@ int main(int argc, char **argv)
                 pv_segments[i].lv_start,
                 pv_segments[i].lv_start+pv_segments[i].pv_length);
 
+    if (argc <= 2)
+        return 0;
     struct pv_info *pv_info;
-    pv_info = LE_to_PE("laptom", argv[1], 49070);
+    pv_info = LE_to_PE("laptom", argv[1], atoi(argv[2]));
     if (pv_info)
-        printf("LE no 49070 of laptom-%s is at: %s:%li\n", argv[1],
+        printf("LE no %i of laptom-%s is at: %s:%li\n", atoi(argv[2]), argv[1],
             pv_info->pv_name, pv_info->start_seg);
     else
         printf("no LE found\n");
