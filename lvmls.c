@@ -394,6 +394,31 @@ void init_le_to_pe()
     return;
 }
 
+// return number of free extents in PV in specified volume group
+// or in whole volume group if pv_name is NULL
+uint64_t get_free_extent_number(char *vg_name, char *pv_name)
+{
+    if (!vg_name)
+        return 0;
+
+    uint64_t sum=0;
+
+    if(pv_name)
+        for(size_t i=0; i < pv_segments_num; i++) {
+            if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+                !strcmp(pv_segments[i].pv_name, pv_name) &&
+                !strcmp(pv_segments[i].pv_type, "free"))
+              sum+=pv_segments[i].pv_length;
+        }
+    else 
+        for(size_t i=0; i < pv_segments_num; i++) 
+            if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+                !strcmp(pv_segments[i].pv_type, "free"))
+              sum+=pv_segments[i].pv_length;
+
+    return sum;
+}
+
 int main(int argc, char **argv)
 {
     init_le_to_pe();
