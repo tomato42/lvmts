@@ -13,6 +13,11 @@ It will dump collected data (including 200 most active, most written and most
 read blocks in format ready to use with pvmove) when the pipe is broken (killall
 blktrace).
 
+optional parameter is the number of most active blocks:
+
+./lvmtsd 400
+
+
 
 To compile lvmls:
 gcc -llvm2cmd lvmls.c -o lvmls -std=gnu99 -Wall

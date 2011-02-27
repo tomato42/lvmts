@@ -24,7 +24,10 @@
 #include <sys/time.h>
 
 /// number of extents in 2TiB LV
-#define EXTENTS 524288
+//#define EXTENTS 524288
+#define EXTENTS extents
+
+uint64_t extents=1024;
 
 // granularity of samples (5 minutes)
 #define GRANULARITY 300
@@ -200,7 +203,7 @@ struct extent_score_t* convert_extent_info_to_extent_score(struct extent_info_t 
     return es;
 }
 
-int read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
+struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
 {
     char in_buf[8192]={0};
     char blk_dev_num[4096]={0};
@@ -217,6 +220,8 @@ int read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
     // number of sectors in extent
     uint64_t sec_in_ext = 4 * 1024 * 1024 / 512; 
 
+    // offset in extents
+    uint64_t extent_num=0;
     int r;
 
     while (fgets(in_buf, 8191, stdin)){
@@ -230,21 +235,43 @@ int read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
         if (strcmp(action_id,"C"))
             continue;
 
+        // round up
+        extent_num=(offset+(sec_in_ext-1))/sec_in_ext;
+
+        if (extents<=extent_num) {
+            extent_info = realloc(extent_info, 
+                sizeof(struct extent_info_t)*(extent_num+100));
+            if (!extent_info){
+                fprintf(stderr, "out of memory\n");
+                exit(1);
+            }
+
+            memset(&extent_info[extents], 0, 
+                (extent_num+100-extents)*sizeof(struct extent_info_t));
+
+            extents=extent_num+100;
+        }
+
         if (rwbs[0] == 'R') 
-            add_io(&extent_info[(size_t)offset/sec_in_ext],
+            add_io(&extent_info[(size_t)extent_num],
                 start_time + time_stamp, READ);
 
         if (rwbs[0] == 'W') 
-            add_io(&extent_info[(size_t)offset/sec_in_ext],
+            add_io(&extent_info[(size_t)extent_num],
                 start_time + time_stamp, WRITE);
     }
 
-    return 0;
+    return extent_info;
 }
 
 int main(int argc, char **argv)
 {
     struct extent_info_t *extent_info;
+
+    int ext_to_print = 200;
+    
+    if(argc>1)
+        ext_to_print = atoi(argv[1]);
 
     extent_info = calloc(sizeof(struct extent_info_t), EXTENTS);
     if (!extent_info) {
@@ -256,7 +283,7 @@ int main(int argc, char **argv)
 
     uint64_t now = time(NULL);
 
-    read_stdin(now, extent_info);
+    extent_info = read_stdin(now, extent_info);
 
     printf("individual extent score:\n");
     for(size_t i=0; i<EXTENTS; i++)
@@ -272,22 +299,31 @@ int main(int argc, char **argv)
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_cmp);
     
     printf("\n\n");
-    printf("200 most active extents: (from least to most)\n");
-    for(int i=EXTENTS-200; i<EXTENTS; i++)
-        printf("%lu:", extent_score[i].offset);
+    printf("%i most active extents: (from least to most)\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset);
+        else
+            printf("%lu:", extent_score[i].offset);
     printf("\n\n");
 
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_read_cmp);
 
-    printf("200 most read extents (from least to most):\n");
-    for(int i=EXTENTS-200; i<EXTENTS; i++)
-        printf("%lu:", extent_score[i].offset);
+    printf("%i most read extents (from least to most):\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset);
+        else
+            printf("%lu:", extent_score[i].offset);
     printf("\n\n");
 
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_write_cmp);
-    printf("200 most write extents (from least to most):\n");
-    for(int i=EXTENTS-200; i<EXTENTS; i++)
-        printf("%lu:", extent_score[i].offset);
+    printf("%i most write extents (from least to most):\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset);
+        else
+            printf("%lu:", extent_score[i].offset);
 
     free(extent_score);
     free(extent_info);
