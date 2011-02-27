@@ -13,9 +13,12 @@ It will dump collected data (including 200 most active, most written and most
 read blocks in format ready to use with pvmove) when the pipe is broken (killall
 blktrace).
 
-optional parameter is the number of most active blocks:
+there are two optional parameters, the first physical extent and number of 
+extents written:
+./lvmtsd <first-extent> <number-of-extents>
+for example:
 
-./lvmtsd 400
+./lvmtsd 420000 400
 
 
 
