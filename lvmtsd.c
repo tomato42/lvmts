@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,14 +26,17 @@
 /// number of extents in 2TiB LV
 #define EXTENTS 524288
 
+// granularity of samples (5 minutes)
+#define GRANULARITY 300
+
 #define READ 0x1
 #define WRITE 0x2
 
 #define HISTORY_LEN 20
 
 struct extent_info_t {
-    long long reads[HISTORY_LEN];
-    long long writes[HISTORY_LEN];
+    uint64_t reads[HISTORY_LEN];
+    uint64_t writes[HISTORY_LEN];
 };
 
 struct extent_score_t{
@@ -41,28 +45,25 @@ struct extent_score_t{
     long long write_score;
 };
 
-int add_io(struct extent_info_t *ei, int type)
+int add_io(struct extent_info_t *ei, uint64_t time, int type)
 {
   long long result;
   long long now;
-  long long one_hour;
-  
-  one_hour=3600;
 
-  now = time(NULL);
+  now = time;
 
   if(type == READ) {
       result = now - ei->reads[0];
-        {//if(timercmp(&result, &one_hour, >)) {
-            memmove(&ei->reads[1], &ei->reads[0], sizeof(struct timeval)*(HISTORY_LEN-1));
+        if(result > GRANULARITY) {
+            memmove(&ei->reads[1], &ei->reads[0], sizeof(uint64_t)*(HISTORY_LEN-1));
             ei->reads[0] = now;
         }
     }
 
   if(type == WRITE) {
       result = now - ei->writes[0];
-        {//if(timercmp(&result, &one_hour, >)) {
-            memmove(&ei->writes[1], &ei->writes[0], sizeof(struct timeval)*(HISTORY_LEN-1));
+        if(result > GRANULARITY) {
+            memmove(&ei->writes[1], &ei->writes[0], sizeof(uint64_t)*(HISTORY_LEN-1));
             ei->writes[0] = now;
         }
     }
@@ -99,7 +100,7 @@ unsigned int get_read_score(struct extent_info_t *ei) {
           continue;
       }
       extent_time = ei->reads[i];
-      score -= (now_time - extent_time) / 3600;
+      score -= (now_time - extent_time) / GRANULARITY;
   }
 
   return score;
@@ -122,7 +123,7 @@ unsigned int get_write_score(struct extent_info_t *ei) {
           continue;
       }
       extent_time = ei->writes[i];
-      score -= (now_time - extent_time) / 3600;
+      score -= (now_time - extent_time) / GRANULARITY;
   }
 
   return score;
@@ -199,6 +200,48 @@ struct extent_score_t* convert_extent_info_to_extent_score(struct extent_info_t 
     return es;
 }
 
+int read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
+{
+    char in_buf[8192]={0};
+    char blk_dev_num[4096]={0};
+    int cpu_id=0;
+    uint64_t seq_num=0;
+    double time_stamp=0;
+    int proc_id=0;
+    char action_id[8]={0};
+    char rwbs[8]={0};
+    uint64_t offset=0;
+    char plus_sgn[8]={0};
+    uint64_t len=0;
+    char err_val[16];
+    // number of sectors in extent
+    uint64_t sec_in_ext = 4 * 1024 * 1024 / 512; 
+
+    int r;
+
+    while (fgets(in_buf, 8191, stdin)){
+        r = sscanf(in_buf, 
+            "%4095s %100i %" SCNu64 " %64lf %64i %7s %7s %" SCNu64 " %4s "
+            "%" SCNu64 " %15s",
+            blk_dev_num, &cpu_id, &seq_num, &time_stamp, &proc_id,
+            action_id, rwbs, &offset, plus_sgn, &len, err_val);
+
+        // ignore all non Complete events 
+        if (strcmp(action_id,"C"))
+            continue;
+
+        if (rwbs[0] == 'R') 
+            add_io(&extent_info[(size_t)offset/sec_in_ext],
+                start_time + time_stamp, READ);
+
+        if (rwbs[0] == 'W') 
+            add_io(&extent_info[(size_t)offset/sec_in_ext],
+                start_time + time_stamp, WRITE);
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     struct extent_info_t *extent_info;
@@ -211,26 +254,10 @@ int main(int argc, char **argv)
 
     printf("sizeof: %li\n", sizeof(struct extent_info_t));
 
-    char type[10];
-    float begin, end;
-    int ret;
-    while (1){
-        ret = fscanf(stdin, "%s %f %f\n", type, &begin, &end);
-        if (ret == EOF)
-            goto clean_up;
-        
-        if (type[0] == 'R') {
-//            printf("read: %lu\n", (size_t)begin);
-            add_io(&extent_info[(size_t)begin], READ);
-        }
+    uint64_t now = time(NULL);
 
-        if (type[0] == 'W') {
-//            printf("write: %lu\n", (size_t)begin);
-            add_io(&extent_info[(size_t)begin], WRITE);
-        }
-    }
+    read_stdin(now, extent_info);
 
-clean_up:
     printf("individual extent score:\n");
     for(size_t i=0; i<EXTENTS; i++)
       if(extent_info[i].reads[0] || extent_info[i].writes[0]) {
