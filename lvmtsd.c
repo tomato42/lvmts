@@ -391,14 +391,9 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
 int main(int argc, char **argv)
 {
     struct extent_info_t *extent_info;
-
-    uint64_t start_extent = 0;
     
     if(argc>1)
-        start_extent = atoi(argv[1]);
-
-    if(argc>2)
-        ext_to_print = atoi(argv[2]);
+        ext_to_print = atoi(argv[1]);
 
     extent_info = calloc(sizeof(struct extent_info_t), EXTENTS);
     if (!extent_info) {
