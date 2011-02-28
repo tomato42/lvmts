@@ -264,6 +264,50 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
     return extent_info;
 }
 
+void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t start_extent)
+{
+    struct extent_score_t *extent_score;
+    
+    extent_score = convert_extent_info_to_extent_score(extent_info);
+
+    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_cmp);
+    
+
+    time_t res;
+
+    res = time(NULL);
+    
+    printf("\n\n");
+    printf("%s", asctime(localtime(&res)));
+    printf("%i most active physical extents: (from least to most)\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset + start_extent);
+        else
+            printf("%lu:", extent_score[i].offset + start_extent);
+    printf("\n\n");
+
+    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_read_cmp);
+
+    printf("%i most read extents (from least to most):\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset + start_extent);
+        else
+            printf("%lu:", extent_score[i].offset + start_extent);
+    printf("\n\n");
+
+    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_write_cmp);
+    printf("%i most write extents (from least to most):\n", ext_to_print);
+    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
+        if(i%10==9 || i==EXTENTS-1)
+            printf("%lu\n", extent_score[i].offset + start_extent);
+        else
+            printf("%lu:", extent_score[i].offset + start_extent);
+
+    free(extent_score);
+}
+
 int main(int argc, char **argv)
 {
     struct extent_info_t *extent_info;
@@ -296,40 +340,8 @@ int main(int argc, char **argv)
 //          print_io(&extent_info[i]);
       }
 
-    struct extent_score_t *extent_score;
+    print_extents(extent_info, ext_to_print, start_extent);
 
-    extent_score = convert_extent_info_to_extent_score(extent_info);
-
-    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_cmp);
-    
-    printf("\n\n");
-    printf("%i most active physical extents: (from least to most)\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
-        else
-            printf("%lu:", extent_score[i].offset + start_extent);
-    printf("\n\n");
-
-    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_read_cmp);
-
-    printf("%i most read extents (from least to most):\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
-        else
-            printf("%lu:", extent_score[i].offset + start_extent);
-    printf("\n\n");
-
-    qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_write_cmp);
-    printf("%i most write extents (from least to most):\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
-        else
-            printf("%lu:", extent_score[i].offset + start_extent);
-
-    free(extent_score);
     free(extent_info);
     return 0;
 }
