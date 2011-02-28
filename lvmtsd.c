@@ -40,6 +40,9 @@ int ext_to_print = 200;
 
 #define HISTORY_LEN 20
 
+char *vg_name=NULL;
+char *lv_name=NULL;
+
 struct extent_info_t {
     uint64_t reads[HISTORY_LEN];
     uint64_t writes[HISTORY_LEN];
@@ -230,14 +233,7 @@ void print_extents(struct extent_info_t *extent_info)
         if(!extent_score[i].read_score && !extent_score[i].write_score)
             break;
 
-        // XXX
-        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
-
-        if(strcmp(ret->pv_name, "/dev/sda2")) {
-            free(ret->pv_name);
-            free(ret);
-            continue;
-        }
+        ret = LE_to_PE(vg_name, lv_name, extent_score[i].offset);
 
         if(num%10==9)
             printf("%lu\n", ret->start_seg);
@@ -260,14 +256,7 @@ void print_extents(struct extent_info_t *extent_info)
         if(!extent_score[i].read_score)
             break;
 
-        // XXX
-        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
-
-        if(strcmp(ret->pv_name, "/dev/sda2")) {
-            free(ret->pv_name);
-            free(ret);
-            continue;
-        }
+        ret = LE_to_PE(vg_name, lv_name, extent_score[i].offset);
 
         if(num%10==9)
             printf("%lu\n", ret->start_seg);
@@ -289,14 +278,7 @@ void print_extents(struct extent_info_t *extent_info)
         if(!extent_score[i].write_score)
             break;
 
-        // XXX
-        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
-
-        if(strcmp(ret->pv_name, "/dev/sda2")) {
-            free(ret->pv_name);
-            free(ret);
-            continue;
-        }
+        ret = LE_to_PE(vg_name, lv_name, extent_score[i].offset);
 
         if(num%10==9)
             printf("%lu\n", ret->start_seg);
@@ -328,13 +310,14 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
     char err_val[16];
     // number of sectors in extent
     init_le_to_pe();
-    // XXX
-    uint64_t sec_in_ext = get_pe_size("laptom");
+    uint64_t sec_in_ext = get_pe_size(vg_name);
 
     if (sec_in_ext == 0) {
-        fprintf(stderr, "No volume group named laptom\n");
+        fprintf(stderr, "No volume group named %s\n", vg_name);
         exit(1);
     }
+
+    FILE *btrace;
 
     // offset in extents
     uint64_t extent_num=0;
@@ -342,7 +325,18 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
 
     uint64_t last_print = 0;
 
-    while (fgets(in_buf, 8191, stdin)){
+    char cmd[8192]={0};
+
+    sprintf(cmd, "btrace -t -a complete /dev/%s/%s", vg_name, lv_name);
+
+    // XXX UGLY!!
+    btrace = popen(cmd, "r");
+    if(!btrace){
+        fprintf(stderr, "can't invoke btrace");
+        exit(1);
+    }
+
+    while (fgets(in_buf, 8191, btrace)){
         r = sscanf(in_buf, 
             "%4095s %100i %" SCNu64 " %64lf %64i %7s %7s %" SCNu64 " %4s "
             "%" SCNu64 " %15s",
@@ -385,15 +379,47 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
                 start_time + time_stamp, WRITE);
     }
 
+    pclose(btrace);
+
     return extent_info;
+}
+
+void parse_lv_name(char *path)
+{
+    // XXX UGLY! UNSAFE!
+    static char copy[8192];
+    char *last, *second_to_last;
+    strcpy(copy, path);
+    last = strrchr(copy, '/');
+    if (last == NULL) {
+        fprintf(stderr, "specify path as /dev/<vg-name>/<lv-name>\n");
+        exit(1);
+    }
+    *last=0;
+    last++;
+    lv_name = last;
+    second_to_last = strrchr(copy, '/');
+    if (second_to_last == NULL) {
+        fprintf(stderr, "specify path as /dev/<vg-name>/<lv-name>\n");
+        exit(1);
+    }
+    vg_name = second_to_last+1;
+    printf("vg: %s, lv: %s\n", vg_name, lv_name);
 }
 
 int main(int argc, char **argv)
 {
     struct extent_info_t *extent_info;
     
-    if(argc>1)
-        ext_to_print = atoi(argv[1]);
+    if(argc==1) {
+        fprintf(stderr, "Usage: %s <dev name> [<number of extents to print>]\n", argv[0]);
+        exit(1);
+    }
+
+    parse_lv_name(argv[1]);
+
+    if(argc>2)
+        ext_to_print = atoi(argv[2]);
 
     extent_info = calloc(sizeof(struct extent_info_t), EXTENTS);
     if (!extent_info) {
