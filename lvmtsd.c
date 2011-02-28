@@ -203,67 +203,6 @@ struct extent_score_t* convert_extent_info_to_extent_score(struct extent_info_t 
     return es;
 }
 
-struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
-{
-    char in_buf[8192]={0};
-    char blk_dev_num[4096]={0};
-    int cpu_id=0;
-    uint64_t seq_num=0;
-    double time_stamp=0;
-    int proc_id=0;
-    char action_id[8]={0};
-    char rwbs[8]={0};
-    uint64_t offset=0;
-    char plus_sgn[8]={0};
-    uint64_t len=0;
-    char err_val[16];
-    // number of sectors in extent
-    uint64_t sec_in_ext = 4 * 1024 * 1024 / 512; 
-
-    // offset in extents
-    uint64_t extent_num=0;
-    int r;
-
-    while (fgets(in_buf, 8191, stdin)){
-        r = sscanf(in_buf, 
-            "%4095s %100i %" SCNu64 " %64lf %64i %7s %7s %" SCNu64 " %4s "
-            "%" SCNu64 " %15s",
-            blk_dev_num, &cpu_id, &seq_num, &time_stamp, &proc_id,
-            action_id, rwbs, &offset, plus_sgn, &len, err_val);
-
-        // ignore all non Complete events 
-        if (strcmp(action_id,"C"))
-            continue;
-
-        // round up
-        extent_num=(offset+(sec_in_ext-1))/sec_in_ext;
-
-        if (extents<=extent_num) {
-            extent_info = realloc(extent_info, 
-                sizeof(struct extent_info_t)*(extent_num+100));
-            if (!extent_info){
-                fprintf(stderr, "out of memory\n");
-                exit(1);
-            }
-
-            memset(&extent_info[extents], 0, 
-                (extent_num+100-extents)*sizeof(struct extent_info_t));
-
-            extents=extent_num+100;
-        }
-
-        if (rwbs[0] == 'R') 
-            add_io(&extent_info[(size_t)extent_num],
-                start_time + time_stamp, READ);
-
-        if (rwbs[0] == 'W') 
-            add_io(&extent_info[(size_t)extent_num],
-                start_time + time_stamp, WRITE);
-    }
-
-    return extent_info;
-}
-
 void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t start_extent)
 {
     struct extent_score_t *extent_score;
@@ -306,6 +245,75 @@ void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t
             printf("%lu:", extent_score[i].offset + start_extent);
 
     free(extent_score);
+}
+
+struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
+{
+    char in_buf[8192]={0};
+    char blk_dev_num[4096]={0};
+    int cpu_id=0;
+    uint64_t seq_num=0;
+    double time_stamp=0;
+    int proc_id=0;
+    char action_id[8]={0};
+    char rwbs[8]={0};
+    uint64_t offset=0;
+    char plus_sgn[8]={0};
+    uint64_t len=0;
+    char err_val[16];
+    // number of sectors in extent
+    uint64_t sec_in_ext = 4 * 1024 * 1024 / 512; 
+
+    // offset in extents
+    uint64_t extent_num=0;
+    int r;
+
+    uint64_t last_print = 0;
+
+    while (fgets(in_buf, 8191, stdin)){
+        r = sscanf(in_buf, 
+            "%4095s %100i %" SCNu64 " %64lf %64i %7s %7s %" SCNu64 " %4s "
+            "%" SCNu64 " %15s",
+            blk_dev_num, &cpu_id, &seq_num, &time_stamp, &proc_id,
+            action_id, rwbs, &offset, plus_sgn, &len, err_val);
+
+        // ignore all non Complete events 
+        if (strcmp(action_id,"C"))
+            continue;
+
+        // print current stats every 5 minutes
+        if (last_print+60*5<time_stamp) {
+            print_extents(extent_info, 100, 0);
+            last_print = time_stamp;
+        }
+
+        // round up
+        extent_num=(offset+(sec_in_ext-1))/sec_in_ext;
+
+        if (extents<=extent_num) {
+            extent_info = realloc(extent_info, 
+                sizeof(struct extent_info_t)*(extent_num+100));
+            if (!extent_info){
+                fprintf(stderr, "out of memory\n");
+                exit(1);
+            }
+
+            memset(&extent_info[extents], 0, 
+                (extent_num+100-extents)*sizeof(struct extent_info_t));
+
+            extents=extent_num+100;
+        }
+
+        if (rwbs[0] == 'R') 
+            add_io(&extent_info[(size_t)extent_num],
+                start_time + time_stamp, READ);
+
+        if (rwbs[0] == 'W') 
+            add_io(&extent_info[(size_t)extent_num],
+                start_time + time_stamp, WRITE);
+    }
+
+    return extent_info;
 }
 
 int main(int argc, char **argv)
