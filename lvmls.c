@@ -330,12 +330,10 @@ vgs_failure:
 // return size of extents in provided volume group
 uint64_t get_pe_size(char *vg_name)
 {
-    fprintf(stderr, "there are %i vgs\n", vg_pe_sizes_len);
-    for(size_t i=0; i<vg_pe_sizes_len; i++) {
-        fprintf(stderr, "checking %s\n", vg_pe_sizes[i].vg_name);
+    for(size_t i=0; i<vg_pe_sizes_len; i++) 
         if (!strcmp(vg_pe_sizes[i].vg_name, vg_name))
             return vg_pe_sizes[i].pe_size;
-    }
+    
     return 0;
 }
 

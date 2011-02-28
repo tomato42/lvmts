@@ -347,8 +347,8 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
         if (strcmp(action_id,"C"))
             continue;
 
-        // print current stats every 5 minutes XXX
-        if (last_print+60<time_stamp) {
+        // print current stats every 5 minutes 
+        if (last_print+60*5<time_stamp) {
             print_extents(extent_info);
             last_print = time_stamp;
         }
@@ -404,7 +404,6 @@ void parse_lv_name(char *path)
         exit(1);
     }
     vg_name = second_to_last+1;
-    printf("vg: %s, lv: %s\n", vg_name, lv_name);
 }
 
 int main(int argc, char **argv)
@@ -426,8 +425,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "can't allocate memory!\n");
         exit(1);
     }
-
-    printf("sizeof: %li\n", sizeof(struct extent_info_t));
 
     uint64_t now = time(NULL);
 
