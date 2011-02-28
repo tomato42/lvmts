@@ -327,7 +327,7 @@ int main(int argc, char **argv)
         start_extent = atoi(argv[1]);
 
     if(argc>2)
-        ext_to_print = atoi(argv[1]);
+        ext_to_print = atoi(argv[2]);
 
     extent_info = calloc(sizeof(struct extent_info_t), EXTENTS);
     if (!extent_info) {
