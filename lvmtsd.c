@@ -239,7 +239,7 @@ void print_extents(struct extent_info_t *extent_info)
             continue;
         }
 
-        if(num%10==0)
+        if(num%10==9)
             printf("%lu\n", ret->start_seg);
         else
             printf("%lu:", ret->start_seg);
@@ -269,7 +269,7 @@ void print_extents(struct extent_info_t *extent_info)
             continue;
         }
 
-        if(num%10==0)
+        if(num%10==9)
             printf("%lu\n", ret->start_seg);
         else
             printf("%lu:", ret->start_seg);
@@ -298,7 +298,7 @@ void print_extents(struct extent_info_t *extent_info)
             continue;
         }
 
-        if(num%10==0)
+        if(num%10==9)
             printf("%lu\n", ret->start_seg);
         else
             printf("%lu:", ret->start_seg);
