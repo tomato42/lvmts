@@ -22,12 +22,15 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include "lvmls.h"
 
 /// number of extents in 2TiB LV
 //#define EXTENTS 524288
 #define EXTENTS extents
 
 uint64_t extents=1024;
+
+int ext_to_print = 200;
 
 // granularity of samples (5 minutes)
 #define GRANULARITY 300
@@ -321,7 +324,6 @@ int main(int argc, char **argv)
     struct extent_info_t *extent_info;
 
     uint64_t start_extent = 0;
-    int ext_to_print = 200;
     
     if(argc>1)
         start_extent = atoi(argv[1]);
