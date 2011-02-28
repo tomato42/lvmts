@@ -206,7 +206,7 @@ struct extent_score_t* convert_extent_info_to_extent_score(struct extent_info_t 
     return es;
 }
 
-void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t start_extent)
+void print_extents(struct extent_info_t *extent_info)
 {
     struct extent_score_t *extent_score;
     
@@ -214,6 +214,7 @@ void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t
 
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_cmp);
     
+    init_le_to_pe();
 
     time_t res;
 
@@ -221,33 +222,94 @@ void print_extents(struct extent_info_t *extent_info, int ext_to_print, uint64_t
     
     printf("\n\n");
     printf("%s", asctime(localtime(&res)));
-    printf("%i most active physical extents: (from least to most)\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
+    printf("%i most active physical extents: (from most to least)\n", ext_to_print);
+    for(int i=EXTENTS-1, num=0; num<ext_to_print; i--) {
+
+        struct pv_info *ret;
+
+        if(!extent_score[i].read_score && !extent_score[i].write_score)
+            break;
+
+        // XXX
+        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
+
+        if(strcmp(ret->pv_name, "/dev/sda2")) {
+            free(ret->pv_name);
+            free(ret);
+            continue;
+        }
+
+        if(num%10==0)
+            printf("%lu\n", ret->start_seg);
         else
-            printf("%lu:", extent_score[i].offset + start_extent);
+            printf("%lu:", ret->start_seg);
+
+        num++;
+        free(ret->pv_name);
+        free(ret);
+    }
     printf("\n\n");
 
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_read_cmp);
 
-    printf("%i most read extents (from least to most):\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
+    printf("%i most read extents (from most to least):\n", ext_to_print);
+    for(int i=EXTENTS-1, num=0; num<ext_to_print; i--) {
+
+        struct pv_info *ret;
+
+        if(!extent_score[i].read_score)
+            break;
+
+        // XXX
+        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
+
+        if(strcmp(ret->pv_name, "/dev/sda2")) {
+            free(ret->pv_name);
+            free(ret);
+            continue;
+        }
+
+        if(num%10==0)
+            printf("%lu\n", ret->start_seg);
         else
-            printf("%lu:", extent_score[i].offset + start_extent);
+            printf("%lu:", ret->start_seg);
+
+        num++;
+        free(ret->pv_name);
+        free(ret);
+    }
     printf("\n\n");
 
     qsort(extent_score, EXTENTS, sizeof(struct extent_score_t), extent_write_cmp);
-    printf("%i most write extents (from least to most):\n", ext_to_print);
-    for(int i=EXTENTS-ext_to_print; i<EXTENTS; i++)
-        if(i%10==9 || i==EXTENTS-1)
-            printf("%lu\n", extent_score[i].offset + start_extent);
+    printf("%i most write extents (from most to least):\n", ext_to_print);
+    for(int i=EXTENTS-1, num=0; num<ext_to_print; i--) {
+
+        struct pv_info *ret;
+
+        if(!extent_score[i].write_score)
+            break;
+
+        // XXX
+        ret = LE_to_PE("laptom", "home", extent_score[i].offset);
+
+        if(strcmp(ret->pv_name, "/dev/sda2")) {
+            free(ret->pv_name);
+            free(ret);
+            continue;
+        }
+
+        if(num%10==0)
+            printf("%lu\n", ret->start_seg);
         else
-            printf("%lu:", extent_score[i].offset + start_extent);
+            printf("%lu:", ret->start_seg);
+
+        num++;
+        free(ret->pv_name);
+        free(ret);
+    }
 
     free(extent_score);
+    le_to_pe_exit();
 }
 
 struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *extent_info)
@@ -265,7 +327,14 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
     uint64_t len=0;
     char err_val[16];
     // number of sectors in extent
-    uint64_t sec_in_ext = 4 * 1024 * 1024 / 512; 
+    init_le_to_pe();
+    // XXX
+    uint64_t sec_in_ext = get_pe_size("laptom");
+
+    if (sec_in_ext == 0) {
+        fprintf(stderr, "No volume group named laptom\n");
+        exit(1);
+    }
 
     // offset in extents
     uint64_t extent_num=0;
@@ -284,9 +353,9 @@ struct extent_info_t* read_stdin(uint64_t start_time, struct extent_info_t *exte
         if (strcmp(action_id,"C"))
             continue;
 
-        // print current stats every 5 minutes
-        if (last_print+60*5<time_stamp) {
-            print_extents(extent_info, 100, 0);
+        // print current stats every 5 minutes XXX
+        if (last_print+60<time_stamp) {
+            print_extents(extent_info);
             last_print = time_stamp;
         }
 
@@ -350,7 +419,7 @@ int main(int argc, char **argv)
 //          print_io(&extent_info[i]);
       }
 
-    print_extents(extent_info, ext_to_print, start_extent);
+    print_extents(extent_info);
 
     free(extent_info);
     return 0;
