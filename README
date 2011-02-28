@@ -1,22 +1,20 @@
 Application for monitoring LVM volumes and moving blocks based on usage to 
 higher or lower tier storage.
 
-ATM quite rudimentary, more of a helper script.
-
 to compile:
 make
 
 lvmtsd is used like this:
-btrace -t -a complete /dev/vol-grp00/log-vol00 | ./lvmtsd
+./lvmtsd /dev/vol-grp00/log-vol00
 
 It will dump collected data (including 200 most active, most written and most
 read blocks in format ready to use with pvmove) when the pipe is broken (killall
-blktrace).
+blktrace) and every 5 minutes.
 
 there is one optional parameter, the number of extents written in status 
 information:
-./lvmtsd <number-of-extents>
+./lvmtsd <lv-dev-path> [<number-of-extents>]
 for example:
 
-./lvmtsd 400
+./lvmtsd /dev/VolGrp00/LogVol01 400
 
