@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lvmls.h"
 
 // information about continuous extent allocations
 struct pv_allocations {
@@ -181,11 +182,6 @@ parse_error:
     return;
 }
 
-struct pv_info {
-    char *pv_name;
-    uint64_t start_seg;
-};
-
 // convert logical extent from logical volume specified by lv_name, 
 // vg_name and logical extent number (le_num) to physical extent
 // on specific device
@@ -230,8 +226,8 @@ struct vg_pe_sizes {
     uint64_t pe_size;
 };
 
-struct vg_pe_sizes *vg_pe_sizes = NULL;
-size_t vg_pe_sizes_len = 0;
+struct vg_pe_sizes *vg_pe_sizes;
+size_t vg_pe_sizes_len;
 
 // parse output from lvm2cmd about extent sizes
 void parse_vgs_pe_size(int level, const char *file, int line,
@@ -334,9 +330,10 @@ vgs_failure:
 // return size of extents in provided volume group
 uint64_t get_pe_size(char *vg_name)
 {
-    for(size_t i=0; i<vg_pe_sizes_len; i++)
+    for(size_t i=0; i<vg_pe_sizes_len; i++) 
         if (!strcmp(vg_pe_sizes[i].vg_name, vg_name))
             return vg_pe_sizes[i].pe_size;
+    
     return 0;
 }
 
@@ -371,6 +368,9 @@ void init_le_to_pe()
 
     if(pv_segments)
         le_to_pe_exit();
+    
+    vg_pe_sizes = NULL;
+    vg_pe_sizes_len = 0;
 
     lvm2_log_fn(parse_pvs_segments);
 
@@ -394,6 +394,32 @@ void init_le_to_pe()
     return;
 }
 
+// return number of free extents in PV in specified volume group
+// or in whole volume group if pv_name is NULL
+uint64_t get_free_extent_number(char *vg_name, char *pv_name)
+{
+    if (!vg_name)
+        return 0;
+
+    uint64_t sum=0;
+
+    if(pv_name)
+        for(size_t i=0; i < pv_segments_num; i++) {
+            if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+                !strcmp(pv_segments[i].pv_name, pv_name) &&
+                !strcmp(pv_segments[i].pv_type, "free"))
+              sum+=pv_segments[i].pv_length;
+        }
+    else 
+        for(size_t i=0; i < pv_segments_num; i++) 
+            if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+                !strcmp(pv_segments[i].pv_type, "free"))
+              sum+=pv_segments[i].pv_length;
+
+    return sum;
+}
+
+/*
 int main(int argc, char **argv)
 {
     init_le_to_pe();
@@ -425,3 +451,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+*/
