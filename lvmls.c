@@ -399,7 +399,7 @@ int main(int argc, char **argv)
     init_le_to_pe();
 
     if (argc <= 1)
-      return 0;
+      return 1;
 
     for(int i=0; i < pv_segments_num; i++) 
         if(!strcmp(pv_segments[i].lv_name, argv[1]))
