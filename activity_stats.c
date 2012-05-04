@@ -49,6 +49,7 @@ add_block_activity_read(struct block_activity *block, int64_t time, int granular
 
 	memmove(&(block->reads[1]), &(block->reads[0]),
 		sizeof(struct rw_activity) * (HISTORY_LEN - 1));
+	memset(block->reads, 0, sizeof(struct rw_activity));
 
 	block->reads[0].time = time;
 	block->reads[0].hits = 1;
@@ -58,17 +59,18 @@ void
 add_block_activity_write(struct block_activity *block, int64_t time, int granularity) {
 
 	if (block->writes[0].time + granularity >= time
-	    && block->reads[0].hits < HITS_MAX) {
+	    && block->writes[0].hits < HITS_MAX) {
 
 		block->writes[0].hits++;
 		return;
 	}
 
-	memmove(&(block->writes[1]), &(block->reads[0]),
+	memmove(&(block->writes[1]), &(block->writes[0]),
 		sizeof(struct rw_activity) * (HISTORY_LEN - 1));
+	memset(block->writes, 0, sizeof(struct rw_activity));
 
-	block->reads[0].time = time;
-	block->reads[0].hits = 1;
+	block->writes[0].time = time;
+	block->writes[0].hits = 1;
 }
 
 #define T_READ 1
