@@ -1,5 +1,7 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 #include "activity_stats.h"
 
@@ -146,4 +148,245 @@ dump_activity_stats(struct activity_stats *activity) {
 					activity->block[i].writes[j].hits);
 			}
 	}
+}
+
+#define FILE_MAGIC 0xffabb773746d766cULL
+
+int
+write_block(struct block_activity *block, FILE *f) {
+	int n;
+	int16_t hits;
+	uint64_t time;
+
+	for(int j=0; j<HISTORY_LEN; j++) {
+		if (block->reads[j].hits == 0) {
+			n = fseek(f, sizeof(uint64_t) + sizeof(int16_t), SEEK_CUR);
+			if (n)
+				return errno;
+		} else {
+			hits = block->reads[j].hits;
+			time = block->reads[j].time;
+			n = fwrite(&time, sizeof(uint64_t), 1, f);
+			if (n != 1)
+				return EIO;
+			n = fwrite(&hits, sizeof(int16_t), 1, f);
+			if (n != 1)
+				return EIO;
+		}
+	}
+
+	for(int j=0; j<HISTORY_LEN; j++) {
+		if (block->writes[j].hits == 0) {
+			n = fseek(f, sizeof(uint64_t) + sizeof(int16_t), SEEK_CUR);
+			if (n)
+				return errno;
+		} else {
+			hits = block->writes[j].hits;
+			time = block->writes[j].time;
+			n = fwrite(&time, sizeof(uint64_t), 1, f);
+			if (n != 1)
+				return EIO;
+			n = fwrite(&hits, sizeof(int16_t), 1, f);
+			if (n != 1)
+				return EIO;
+		}
+	}
+
+	return 0;
+}
+
+int
+read_block(struct block_activity *block, FILE *f) {
+	int n;
+	int16_t hits;
+	uint64_t time;
+
+	clearerr(f);
+
+	for (int j=0; j<HISTORY_LEN; j++) {
+		n = fread(&time, sizeof(uint64_t), 1, f);
+		if (n != 1) {
+			if (feof(f))
+				return 2;
+			else
+				return 1;
+		}
+		n = fread(&hits, sizeof(int16_t), 1, f);
+		if (n != 1) {
+			if (feof(f))
+				return 2;
+			else
+				return 1;
+		}
+		block->reads[j].hits = hits;
+		block->reads[j].time = time;
+	}
+	for (int j=0; j<HISTORY_LEN; j++) {
+		n = fread(&time, sizeof(uint64_t), 1, f);
+		if (n != 1) {
+			if (feof(f))
+				return 2;
+			else
+				return 1;
+		}
+		n = fread(&hits, sizeof(int16_t), 1, f);
+		if (n != 1) {
+			if (feof(f))
+				return 2;
+			else
+				return 1;
+		}
+		block->writes[j].hits = hits;
+		block->writes[j].time = time;
+	}
+
+	return 0;
+}
+
+int
+write_activity_stats(struct activity_stats *activity, char *file) {
+
+	assert(activity);
+	assert(file);
+
+	FILE *f;
+	int ret = 0;
+	char *tmp = NULL;
+	int n;
+
+	f = fopen(file, "w");
+	if (!f) {
+		if (asprintf(&tmp, "Can't open file \"%s\"", file) == -1) {
+			fprintf(stderr, "Out of memory\n");
+			return 1;
+		}
+		perror(tmp);
+		free(tmp);
+		return 1;
+	}
+
+	uint64_t magic = FILE_MAGIC;
+
+	n = fwrite(&magic, sizeof(uint64_t), 1, f);
+	if (n != 1) {
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	n = fwrite(&(activity->len), sizeof(int64_t), 1, f);
+	if (n != 1) {
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	int32_t hist_len = HISTORY_LEN;
+
+	n = fwrite(&hist_len, sizeof(int32_t), 1, f);
+	if (n != 1) {
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	fseek(f, sizeof(int32_t)*3, SEEK_CUR);
+
+	for(size_t i=0; i<activity->len; i++) {
+		n = write_block(&(activity->block[i]), f);
+		if (n) {
+			ret = n;
+			goto file_cleanup;
+		}
+	}
+
+file_cleanup:
+	fclose(f);
+
+	return ret;
+}
+
+int read_activity_stats(struct activity_stats **activity, char *file) {
+	assert(activity);
+	int ret = 0;
+	int n;
+	char *tmp = NULL;
+	FILE *f;
+
+	f = fopen(file, "r");
+	if (!f) {
+		if (asprintf(&tmp, "Can't open file \"%s\"", file) == -1) {
+			fprintf(stderr, "Out of memory\n");
+			return 1;
+		}
+		perror(tmp);
+		free(tmp);
+		return 1;
+	}
+
+	uint64_t magic;
+
+	n = fread(&magic, sizeof(uint64_t), 1, f);
+	if (n != 1) {
+		fprintf(stderr, "File read error\n");
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	if (magic != FILE_MAGIC) {
+		fprintf(stderr, "File format error, no magic value present\n");
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	uint64_t len;
+	n = fread(&len, sizeof(uint64_t), 1, f);
+	if (n != 1) {
+		fprintf(stderr, "File read error\n");
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	*activity = new_activity_stats_s(len-1);
+	if (!*activity) {
+		fprintf(stderr, "Out of memory\n");
+		ret = 1;
+		goto file_cleanup;
+	}
+
+	int32_t hist_len;
+
+	n = fread(&hist_len, sizeof(int32_t), 1, f);
+	if (n != 1) {
+		fprintf(stderr, "File read error\n");
+		ret = 1;
+		goto activity_cleanup;
+	}
+
+	if (hist_len != HISTORY_LEN) {
+		fprintf(stderr, "Incompatible file format\n");
+		ret = 1;
+		goto activity_cleanup;
+	}
+
+	fseek(f, sizeof(int32_t)*3, SEEK_CUR);
+
+	for(size_t i=0; i<(*activity)->len; i++) {
+		n = read_block(&((*activity)->block[i]), f);
+		if (n == 2)
+			break;
+		if (n) {
+			fprintf(stderr, "File read error\n");
+			ret = n;
+			goto activity_cleanup;
+		}
+	}
+
+	goto file_cleanup;
+
+activity_cleanup:
+	destroy_activity_stats(*activity);
+	*activity = NULL;
+
+file_cleanup:
+	fclose(f);
+
+	return ret;
 }

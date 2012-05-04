@@ -19,7 +19,7 @@ struct block_activity {
 
 struct activity_stats {
 	struct block_activity *block;
-	size_t len;
+	int64_t len;
 };
 
 struct activity_stats* new_activity_stats();
@@ -37,6 +37,11 @@ int add_block_write(struct activity_stats *activity,
 		     int64_t time,
 		     int granularity);
 
+/* print statistics to stdout */
 void dump_activity_stats(struct activity_stats *activity);
+
+int write_activity_stats(struct activity_stats *activity, char *file);
+
+int read_activity_stats(struct activity_stats **activity, char *file);
 
 #endif
