@@ -1,5 +1,12 @@
+CC=gcc
+CFLAGS=-std=gnu99 -Wall -ggdb -Os
+LFLAGS=-llvm2cmd
+
 lvmtsd: lvmtsd.c lvmls.o
-	gcc -std=gnu99 -Wall lvmtsd.c lvmls.o -llvm2cmd -o lvmtsd -Os -ggdb
+	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd
 
 lvmls.o: lvmls.c
-	gcc -std=gnu99 -Wall -c lvmls.c -Os -ggdb
+	$(CC) $(CFLAGS) -c lvmls.c
+
+lvmtscd: lvmtscd.c
+	$(CC) $(CFLAGS) lvmtscd.c -o lvmtscd
