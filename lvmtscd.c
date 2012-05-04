@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -178,20 +179,57 @@ parse_trace_line(char *line, struct trace_point *ret) {
 }
 
 int
-main(int argc, char **argv) {
+collect_trace_points(char *device) {
+#define TRACE_APP "btrace"
+	FILE *trace;
+	char *command;
 	int ret = 0;
-
+	int n;
+	size_t line_len = 4096;
+	char *line = malloc(line_len);
+	assert(line);
 	struct trace_point *tp = malloc(sizeof(struct trace_point));
 	assert(tp);
 
-	parse_trace_line(
-		"254,0    1     2620  1810.471950843 14996  Q   R 211691776 + 1024 [md5sum]",
-		tp);
+	n = asprintf(&command, TRACE_APP " %s", device);
+	if (n <= 0)
+		return 1;
 
-	printf("%"PRIi64"ns: %s, %"PRIi64" - %"PRIi64"\n", tp->nanoseconds, tp->rwbs_data,
-		tp->block, tp->len);
+	trace = popen(command, "re");
+	if (trace == NULL)
+		return 1;
 
+	while(getline(&line, &line_len, trace) != -1) {
+		n = parse_trace_line(line, tp);
+		if (n)
+			continue;
+
+		if (!strcmp(tp->action, "Q")) {
+			if (strchr(tp->rwbs_data, 'R') != NULL) {
+				printf("R: %"PRIi64" - %"PRIi64"\n", tp->block,
+						tp->len);
+			} else {
+				printf("W: %"PRIi64" - %"PRIi64"\n", tp->block,
+						tp->len);
+			}
+		}
+	}
+
+	free(command);
+	pclose(trace);
+	free(line);
 	free(tp);
+	return ret;
+}
+
+int
+main(int argc, char **argv) {
+	int ret = 0;
+
+	if (collect_trace_points("/dev/test/test")) {
+		fprintf(stderr, "Error while tracing");
+		ret = 1;
+	}
 
 	return ret;
 }
