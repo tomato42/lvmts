@@ -34,10 +34,12 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	memset(ret, 0, sizeof(struct trace_point));
 
-	// block device number
+	/*
+	 * block device number
+	 */
 	errno = 0;
 	n = strtol(nptr, &endptr, BASE_10);
-	/* obviously non blktrace line, or blktrace summary lines */
+	// an obviously non blktrace line, or blktrace summary lines
 	if (endptr == nptr || errno || *endptr != ',')
 		return 1;
 
@@ -53,7 +55,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
-	// cpu number
+	/*
+	 * cpu number
+	 */
 	errno = 0;
 	n = strtol(nptr, &endptr, BASE_10);
 	assert(nptr != endptr);
@@ -63,7 +67,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
-	// sequence number
+	/*
+	 * sequence number
+	 */
 	errno = 0;
 	nl = strtoll(nptr, &endptr, BASE_10);
 	assert(nptr != endptr);
@@ -73,7 +79,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
-	// time
+	/*
+	 * time
+	 */
 	errno = 0;
 	nl = strtoll(nptr, &endptr, BASE_10);
 	assert(nptr != endptr);
@@ -92,7 +100,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
-	// process ID
+	/*
+	 * process ID
+	 */
 	errno = 0;
 	n = strtol(nptr, &endptr, BASE_10);
 	assert(nptr != endptr);
@@ -102,7 +112,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
-	// action
+	/*
+	 * action
+	 */
 	while(isspace(*nptr)) {
 		nptr++;
 	}
@@ -115,7 +127,9 @@ parse_trace_line(char *line, struct trace_point *ret) {
 	}
 	ret->action[n] = '\0';
 
-	// rwbs data
+	/*
+	 * rwbs data
+	 */
 	while(isspace(*nptr)) {
 		nptr++;
 	}
@@ -128,7 +142,15 @@ parse_trace_line(char *line, struct trace_point *ret) {
 	}
 	ret->rwbs_data[n] = '\0';
 
-	// block number
+	/*
+	 * block number
+	 */
+	while(isspace(*nptr)){
+		nptr++;
+	} // special treatment for sync() requests
+	if (*nptr == '[')
+		return 0;
+
 	errno = 0;
 	nl = strtoll(nptr, &endptr, BASE_10);
 	assert(nptr != endptr);
@@ -139,6 +161,8 @@ parse_trace_line(char *line, struct trace_point *ret) {
 
 	nptr = endptr + 1;
 
+	if (*nptr == '[') // sync request completions don't have len
+		return 0;
 	assert(*nptr == '+');
 
 	nptr++;
