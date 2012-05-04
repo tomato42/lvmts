@@ -1,0 +1,18 @@
+LVM Tiered Storage system is composed of few applications working together.
+
+lvmtscd
+=======
+LVM Tiered Storage Collectore Daemon monitors block devices for activity and
+saves statistcs to disk.
+
+It is spawned by lvmtsmd
+
+lvmtsmd
+=======
+LVM Tiered Storage Monitor Daemon monitors and spawns other daemons and changes
+to LVM. It is the lvmts user frontend.
+
+lvmtsmvd
+========
+LVM Tiered Storage Move Daemon is responsible for queuing and monitoring pvmove
+operations.
