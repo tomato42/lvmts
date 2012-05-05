@@ -20,6 +20,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <unistd.h>
 #include "activity_stats.h"
 
 struct activity_stats*
@@ -334,6 +335,7 @@ write_activity_stats(struct activity_stats *activity, char *file) {
 	pthread_mutex_unlock(&activity->mutex);
 
 file_cleanup:
+	fsync(fileno(f));
 	fclose(f);
 
 	return ret;
