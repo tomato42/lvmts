@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <ctype.h>
 #include <errno.h>
 #include <assert.h>
+#include <time.h>
+#include "activity_stats.h"
 
 struct trace_point {
 	int8_t dev_major;
@@ -178,9 +181,50 @@ parse_trace_line(char *line, struct trace_point *ret) {
 	return 0;
 }
 
+int64_t inline
+div_ceil(int64_t num, int64_t denum) {
+	return (num - 1)/denum + 1;
+}
+
+/**
+ * Converts blktrace blocks to PV extents
+ *
+ * @param[in,out] offset block where the IO started
+ * @param[in,out] len number of blocks in IO
+ * @param[out] extent converted block to extent number
+ * @param ssize sector size (in bytes)
+ * @param esize extent size (in bytes)
+ * @return 0 if whole IO fits into extent, 1 if function needs to be run again
+ */
 int
-collect_trace_points(char *device) {
+trace_blocks_to_extents(int64_t *offset, int64_t *len, int64_t *extent, size_t ssize, size_t esize) {
+	assert(offset);
+	assert(*offset >= 0);
+	assert(len);
+	assert(*len > 0);
+	assert(extent);
+	assert(ssize > 0);
+	assert(esize > 0);
+
+	int64_t s_in_e = div_ceil(esize, ssize);
+
+	*extent = *offset / s_in_e;
+
+	if ((*offset) / s_in_e == (*offset + *len - 1) / s_in_e) {
+		return 0;
+	}
+
+	*len -= (*extent + 1) * s_in_e - *offset - 1;
+	*offset += (*extent + 1) * s_in_e - *offset;
+	return 1;
+}
+
+int
 #define TRACE_APP "btrace"
+collect_trace_points(char *device,
+		     struct activity_stats *activity,
+		     int64_t granularity,
+		     size_t esize) {
 	FILE *trace;
 	char *command;
 	int ret = 0;
@@ -190,6 +234,12 @@ collect_trace_points(char *device) {
 	assert(line);
 	struct trace_point *tp = malloc(sizeof(struct trace_point));
 	assert(tp);
+	size_t ssize = 512; // sector size: 0.5KiB
+/** nanoseconds in second */
+#define NS_IN_S 1000000000L
+	int64_t tim;
+	int64_t trace_start = time(NULL);
+	int64_t extent;
 
 	n = asprintf(&command, TRACE_APP " %s", device);
 	if (n <= 0)
@@ -204,14 +254,25 @@ collect_trace_points(char *device) {
 		if (n)
 			continue;
 
-		if (!strcmp(tp->action, "Q")) {
+		if (!strcmp(tp->action, "Q") && tp->len) {
+			tim = trace_start + tp->nanoseconds / NS_IN_S;
 			if (strchr(tp->rwbs_data, 'R') != NULL) {
-				printf("R: %"PRIi64" - %"PRIi64"\n", tp->block,
-						tp->len);
-			} else {
-				printf("W: %"PRIi64" - %"PRIi64"\n", tp->block,
-						tp->len);
-			}
+				while(trace_blocks_to_extents(&tp->block,
+							&tp->len, &extent,
+							ssize, esize))
+					add_block_read(activity, extent, tim,
+							granularity);
+				add_block_read(activity, extent, tim,
+						granularity);
+			} else if (strchr(tp->rwbs_data, 'W') != NULL ) {
+				while(trace_blocks_to_extents(&tp->block,
+							&tp->len, &extent,
+							ssize, esize))
+					add_block_write(activity, extent, tim,
+							granularity);
+				add_block_write(activity, extent, tim,
+						granularity);
+			} // ignore other types of operations
 		}
 	}
 
