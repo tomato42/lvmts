@@ -26,7 +26,12 @@
 #include <errno.h>
 #include <assert.h>
 #include <time.h>
+#include <signal.h>
+#include <pthread.h>
+#include <getopt.h>
 #include "activity_stats.h"
+
+static int programEnd = 0;
 
 struct trace_point {
 	int8_t dev_major;
@@ -198,7 +203,7 @@ parse_trace_line(char *line, struct trace_point *ret) {
 	return 0;
 }
 
-int64_t inline
+int64_t
 div_ceil(int64_t num, int64_t denum) {
 	return (num - 1)/denum + 1;
 }
@@ -240,7 +245,8 @@ int
 collect_trace_points(char *device,
 		     struct activity_stats *activity,
 		     int64_t granularity,
-		     size_t esize) {
+		     size_t esize,
+		     int *ender) {
 #define TRACE_APP "btrace"
 	FILE *trace;
 	char *command;
@@ -266,7 +272,7 @@ collect_trace_points(char *device,
 	if (trace == NULL)
 		return 1;
 
-	while(getline(&line, &line_len, trace) != -1) {
+	while(!*ender && getline(&line, &line_len, trace) != -1) {
 		n = parse_trace_line(line, tp);
 		if (n)
 			continue;
@@ -300,14 +306,270 @@ collect_trace_points(char *device,
 	return ret;
 }
 
+struct thread_param {
+	struct activity_stats *activ;
+	int32_t delay;
+	char *file;
+	int *ender;
+};
+
+static char *
+create_temp_file_name(char *file) {
+	char *ret = NULL;
+	if (strrchr(file, '/') == NULL) {
+		asprintf(&ret, ".%s", file);
+		return ret;
+	}
+
+	char *tmp = strdup(file);
+	char *last_slash = strrchr(tmp, '/');
+	*last_slash = '\0';
+	last_slash++;
+
+	if (asprintf(&ret, "%s/.%s", tmp, last_slash) == -1) {
+		free(tmp);
+		return NULL;
+	}
+
+	free(tmp);
+	return ret;
+}
+
+void *
+disk_write_worker(void *in) {
+	struct thread_param *tp = (struct thread_param *)in;
+
+	char *tmp_file = create_temp_file_name(tp->file);
+
+	for (;!*tp->ender;) {
+		sleep(tp->delay);
+
+		if (write_activity_stats(tp->activ, tmp_file)) {
+			fprintf(stderr, "Error writing activity stats"
+					" to file %s\n", tmp_file);
+			unlink(tmp_file);
+			continue;
+		}
+
+		rename(tmp_file, tp->file);
+	}
+
+	free(tp);
+	return NULL;
+}
+
+void
+signalHandler(int dummy) {
+	programEnd = 1;
+}
+
+void
+ignoreHandler(int dummy) {
+}
+
+struct program_params {
+	size_t esize; /**< extent size */
+	int64_t granularity;
+	char *file;
+	int64_t delay;
+	char *lv_dev_name;
+	int daemonize;
+	int show_help;
+};
+
+void
+usage(char *name) {
+	printf("LVM TS collector daemon\n");
+	printf("\n");
+	printf("Usage: %s -f <stats-file> -l <LV-device> [OPTIONS]\n\n", name);
+	printf("\t--extent-size n  Assume extent size of monitored device to `n` bytes\n");
+	printf("\t--granularity m  Compact together io happening in `m` second intervals\n");
+	printf("\t-f,--file f      Save gathered statistics to file `f`\n");
+	printf("\t-l,--lv-dev d    Monitor device `d`\n");
+	printf("\t-d,--debug       Don't daemonize, run in forground\n");
+	printf("\t--delay l        How often write statistics to file (in seconds)\n");
+	printf("\t-?,--help        This message\n");
+}
+
+int
+parse_arguments(int argc, char **argv, struct program_params *pp) {
+	assert(pp);
+	int f_ret = 0;
+	int c;
+
+	// default parameters
+	pp->esize = 4*1024*1024;
+	pp->granularity = 60;
+	pp->file = 0;
+	pp->lv_dev_name = 0;
+	pp->daemonize = 1;
+	pp->show_help = 0;
+	pp->delay = 60 * 5; // write dumps every 5 minutes
+
+	struct option long_options[] = {
+		{"extent-size",  required_argument, 0, 0 }, // 0
+		{"granularity",  required_argument, 0, 0 }, // 1
+		{"file",         required_argument, 0, 'f' }, // 2
+		{"lv-dev",       required_argument, 0, 'l' }, // 3
+		{"debug",        no_argument,       0, 'd' }, // 4
+		{"help",         no_argument,       0, '?' }, // 5
+		{"delay",        required_argument, 0, 0 }, // 6
+		{0, 0, 0, 0}
+	};
+
+	int64_t tmp_lint;
+
+	while(1) {
+		int option_index = 0;
+
+		c = getopt_long(argc, argv, "f:l:d?", long_options, &option_index);
+
+		if (c == -1)
+			break;
+
+		switch(c) {
+			case 0: /* long options */
+				switch (option_index) {
+					case 0: /* extent-size */
+						tmp_lint = atoll(optarg);
+						if (tmp_lint <= 0) {
+							fprintf(stderr, "Invalid parameter to option `extent-size`\n");
+							f_ret = 1;
+							goto usage;
+						}
+						pp->esize = tmp_lint;
+						break;
+					case 1: /* granularity */
+						tmp_lint = atoll(optarg);
+						if (tmp_lint <= 0) {
+							fprintf(stderr, "Invalid parameter to option `granularity`\n");
+							f_ret = 1;
+							goto usage;
+						}
+						pp->granularity = tmp_lint;
+						break;
+					case 6: /* delay */
+						tmp_lint = atoll(optarg);
+						if (tmp_lint <= 0) {
+							fprintf(stderr, "Invalid parameter to option `delay`\n");
+							f_ret = 1;
+							goto usage;
+						}
+						pp->delay = tmp_lint;
+						break;
+					default:
+						fprintf(stderr, "Unknown option %i\n",
+								option_index);
+						f_ret = -1;
+						goto usage;
+						break;
+				}
+				break;
+			case 'f':
+				pp->file = optarg;
+				break;
+			case 'l':
+				pp->lv_dev_name = optarg;
+				break;
+			case 'd':
+				pp->daemonize = 0;
+				break;
+			case '?':
+				f_ret = 1;
+				goto usage;
+				break;
+			default:
+				f_ret = 1;
+				fprintf(stderr, "Unknown option %c\n", c);
+				goto usage;
+		}
+	}
+
+	if (pp->file && pp->lv_dev_name)
+		goto no_output;
+
+	fprintf(stderr, "Must specify Logical Volume device name and path to "
+			"statistics file\n");
+	f_ret = 1;
+usage:
+	usage(argv[0]);
+
+no_output:
+	return f_ret;
+}
+
+void
+daemonize() {
+
+	if(daemon(1, 0)) {
+		perror("Can't daemonize");
+		exit(1);
+	}
+}
+
 int
 main(int argc, char **argv) {
 	int ret = 0;
+	struct activity_stats *activ = NULL;
+	struct thread_param *tp = malloc(sizeof(struct thread_param));
+	assert(tp);
 
-	if (collect_trace_points("/dev/test/test")) {
+	struct program_params pp = { 0 };
+
+	if (parse_arguments(argc, argv, &pp)) {
+		free(tp);
+		return 1;
+	}
+
+	//activ = new_activity_stats_s(1<<10); // assume 2^11 extents (40GiB)
+	if(read_activity_stats(&activ, pp.file)) {
+		fprintf(stderr, "Can't read \"%s\". Ignoring.\n", pp.file);
+		activ = new_activity_stats_s(1<<10); // assume 2^11 extents (40GiB)
+	}
+
+	if (pp.daemonize)
+		daemonize();
+
+	signal(SIGINT, signalHandler);
+	signal(SIGTERM, signalHandler);
+	signal(SIGHUP, ignoreHandler);
+
+	tp->activ = activ;
+	tp->delay = pp.delay;
+	tp->file = pp.file;
+	tp->ender = &programEnd;
+
+	pthread_attr_t pt_attr;
+	pthread_t thread;
+
+	if (pthread_attr_init(&pt_attr)) {
+		fprintf(stderr, "Can't initialize thread attribute\n");
+		return 1;
+	}
+
+	if(pthread_attr_setdetachstate(&pt_attr, PTHREAD_CREATE_DETACHED)) {
+		fprintf(stderr, "Can't set thread attribute\n");
+		return 1;
+	}
+
+	if(pthread_create(&thread, &pt_attr, &disk_write_worker, tp)) {
+		fprintf(stderr, "Can't create thread\n");
+		return 1;
+	}
+
+
+	if (collect_trace_points(pp.lv_dev_name,
+				 activ,
+				 pp.granularity,
+				 pp.esize,
+				 &programEnd)) {
 		fprintf(stderr, "Error while tracing");
 		ret = 1;
 	}
+
+	dump_activity_stats(activ);
+
+	destroy_activity_stats(activ);
 
 	return ret;
 }
