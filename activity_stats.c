@@ -136,7 +136,7 @@ dump_activity_stats(struct activity_stats *activity) {
 				if (activity->block[i].reads[j].hits == 0)
 					break;
 				printf("block read: %lu, time: %lu, hits: %i\n",
-					i, activity->block[i].reads[j].time,
+					i, (uint64_t)activity->block[i].reads[j].time,
 					activity->block[i].reads[j].hits);
 			}
 		if (activity->block[i].writes[0].hits)
@@ -144,7 +144,7 @@ dump_activity_stats(struct activity_stats *activity) {
 				if (activity->block[i].writes[j].hits == 0)
 					break;
 				printf("block write: %lu, time: %lu, hits: %i\n",
-					i, activity->block[i].writes[j].time,
+					i, (uint64_t)activity->block[i].writes[j].time,
 					activity->block[i].writes[j].hits);
 			}
 	}
