@@ -237,11 +237,11 @@ trace_blocks_to_extents(int64_t *offset, int64_t *len, int64_t *extent, size_t s
 }
 
 int
-#define TRACE_APP "btrace"
 collect_trace_points(char *device,
 		     struct activity_stats *activity,
 		     int64_t granularity,
 		     size_t esize) {
+#define TRACE_APP "btrace"
 	FILE *trace;
 	char *command;
 	int ret = 0;
