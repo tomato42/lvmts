@@ -1,6 +1,7 @@
 CC=gcc
-CFLAGS=-std=gnu99 -Wall -ggdb -Os
-LFLAGS=-llvm2cmd
+#CFLAGS=-std=gnu99 -Wall -pthread -ggdb -Os
+CFLAGS=-std=gnu99 -Wall -pthread -ggdb
+LFLAGS=-llvm2cmd -pthread
 
 lvmtsd: lvmtsd.c lvmls.o
 	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd

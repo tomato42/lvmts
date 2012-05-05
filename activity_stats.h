@@ -19,6 +19,7 @@
 #define _ACTIVITY_STATS_H_
 #include <stdint.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #define HISTORY_LEN 10
 #define TIME_MAX ((1<<51)-1)
@@ -37,6 +38,7 @@ struct block_activity {
 struct activity_stats {
 	struct block_activity *block;
 	int64_t len;
+	pthread_mutex_t mutex;
 };
 
 struct activity_stats* new_activity_stats();

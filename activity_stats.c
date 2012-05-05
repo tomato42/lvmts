@@ -29,6 +29,8 @@ new_activity_stats() {
 
 	ret = calloc(sizeof(struct activity_stats), 1);
 
+	pthread_mutex_init(&ret->mutex, NULL);
+
 	return ret;
 }
 
@@ -42,6 +44,8 @@ new_activity_stats_s(size_t blocks) {
 	ret->block = calloc(sizeof(struct block_activity), blocks + 1);
 	ret->len = blocks + 1;
 
+	pthread_mutex_init(&ret->mutex, NULL);
+
 	return ret;
 }
 
@@ -53,10 +57,12 @@ destroy_activity_stats(struct activity_stats *activity) {
 
 	if (activity->block)
 		free(activity->block);
+
+	pthread_mutex_destroy(&activity->mutex);
 	free(activity);
 }
 
-void
+static void
 add_block_activity_read(struct block_activity *block, int64_t time, int granularity) {
 
 	if (block->reads[0].time + granularity >= time
@@ -74,7 +80,7 @@ add_block_activity_read(struct block_activity *block, int64_t time, int granular
 	block->reads[0].hits = 1;
 }
 
-void
+static void
 add_block_activity_write(struct block_activity *block, int64_t time, int granularity) {
 
 	if (block->writes[0].time + granularity >= time
@@ -99,14 +105,19 @@ int
 add_block(struct activity_stats *activity, int64_t off, int64_t time,
 		int granularity, int type) {
 
+	int ret = 0;
 	struct block_activity *tmp;
+
+	pthread_mutex_lock(&activity->mutex);
 
 	// dynamically extend activity->block as new blocks are added
 	if (!activity->block) {
 
 		activity->block = calloc(sizeof(struct block_activity), off + 1);
-		if (!activity->block)
-			return ENOMEM;
+		if (!activity->block) {
+			ret = ENOMEM;
+			goto mutex_cleanup;
+		}
 
 		activity->len = off + 1;
 
@@ -114,8 +125,10 @@ add_block(struct activity_stats *activity, int64_t off, int64_t time,
 
 		tmp = realloc(activity->block,
 				sizeof(struct block_activity) * (off + 1));
-		if (!tmp)
-			return ENOMEM;
+		if (!tmp) {
+			ret = ENOMEM;
+			goto mutex_cleanup;
+		}
 		activity->block = tmp;
 
 		memset(activity->block + activity->len,
@@ -128,8 +141,10 @@ add_block(struct activity_stats *activity, int64_t off, int64_t time,
 		add_block_activity_read(&(activity->block[off]), time, granularity);
 	else
 		add_block_activity_write(&(activity->block[off]), time, granularity);
+mutex_cleanup:
+	pthread_mutex_unlock(&activity->mutex);
 
-	return 0;
+	return ret;
 }
 
 int
@@ -169,7 +184,7 @@ dump_activity_stats(struct activity_stats *activity) {
 
 #define FILE_MAGIC 0xffabb773746d766cULL
 
-int
+static int
 write_block(struct block_activity *block, FILE *f) {
 	int n;
 	int16_t hits;
@@ -212,7 +227,7 @@ write_block(struct block_activity *block, FILE *f) {
 	return 0;
 }
 
-int
+static int
 read_block(struct block_activity *block, FILE *f) {
 	int n;
 	int16_t hits;
@@ -306,13 +321,17 @@ write_activity_stats(struct activity_stats *activity, char *file) {
 
 	fseek(f, sizeof(int32_t)*3, SEEK_CUR);
 
+	pthread_mutex_lock(&activity->mutex);
+
 	for(size_t i=0; i<activity->len; i++) {
 		n = write_block(&(activity->block[i]), f);
 		if (n) {
 			ret = n;
-			goto file_cleanup;
+			break;
 		}
 	}
+
+	pthread_mutex_unlock(&activity->mutex);
 
 file_cleanup:
 	fclose(f);
