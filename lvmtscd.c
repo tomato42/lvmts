@@ -355,6 +355,7 @@ disk_write_worker(void *in) {
 	}
 
 	free(tp);
+	free(tmp_file);
 	return NULL;
 }
 
