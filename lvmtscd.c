@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <getopt.h>
+#include <signal.h>
 #include "activity_stats.h"
 
 static int programEnd = 0;
@@ -548,11 +549,6 @@ main(int argc, char **argv) {
 		return 1;
 	}
 
-	if(pthread_attr_setdetachstate(&pt_attr, PTHREAD_CREATE_DETACHED)) {
-		fprintf(stderr, "Can't set thread attribute\n");
-		return 1;
-	}
-
 	if(pthread_create(&thread, &pt_attr, &disk_write_worker, tp)) {
 		fprintf(stderr, "Can't create thread\n");
 		return 1;
@@ -568,9 +564,17 @@ main(int argc, char **argv) {
 		ret = 1;
 	}
 
-	dump_activity_stats(activ);
+	fprintf(stderr, "Writing activity stats...");
+
+	union sigval sigArg = {.sival_int=0};
+	pthread_sigqueue(thread, SIGHUP, sigArg);
+
+	void *thret;
+	pthread_join(thread, &thret);
 
 	destroy_activity_stats(activ);
+
+	fprintf(stderr, "done\n");
 
 	return ret;
 }
