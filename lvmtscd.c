@@ -365,6 +365,7 @@ signalHandler(int dummy) {
 	programEnd = 1;
 }
 
+/* signal handler that ignores the signal */
 void
 ignoreHandler(int dummy) {
 }
@@ -553,7 +554,6 @@ main(int argc, char **argv) {
 		fprintf(stderr, "Can't create thread\n");
 		return 1;
 	}
-
 
 	if (collect_trace_points(pp.lv_dev_name,
 				 activ,
