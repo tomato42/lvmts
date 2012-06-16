@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
+#include <math.h>
 #include "activity_stats.h"
 
 struct activity_stats*
@@ -160,26 +161,95 @@ add_block_write(struct activity_stats *activity, int64_t off, int64_t time, int 
 	return add_block(activity, off, time, granularity, T_WRITE);
 }
 
+#define HIT_SCORE 16.0L
+#define SCALE (pow(2,-15))
+float
+get_block_score(struct activity_stats *activity, int64_t off, int type) {
+
+	double score = 0.0;
+	time_t last_access = 0;
+	int len = 0;
+	int i;
+	for(i=0; i<HISTORY_LEN; i++)
+		if ((type == T_READ && activity->block[off].reads[i].hits == 0)
+		   || (type == T_WRITE && activity->block[off].writes[i].hits == 0))
+			break;
+	len = i;
+
+	if (type == T_READ) {
+		last_access = activity->block[off].reads[i].time;
+		score = activity->block[off].reads[i].hits * HIT_SCORE;
+	} else if (type == T_WRITE) {
+		last_access = activity->block[off].writes[i].time;
+		score = activity->block[off].writes[i].hits * HIT_SCORE;
+	} else {
+		assert(1);
+	}
+
+	time_t time_diff;
+	for(int i=len-1; i>=0; i--) {
+		if (type == T_READ) {
+			time_diff = activity->block[off].reads[i].time - last_access;
+			last_access = activity->block[off].reads[i].time;
+		} else if (type == T_WRITE) {
+			time_diff = activity->block[off].writes[i].time - last_access;
+			last_access = activity->block[off].writes[i].time;
+		} else
+			assert(1);
+
+		score *= exp(-1.0 * SCALE * time_diff);
+
+		if (type == T_READ) {
+			score += activity->block[off].reads[i].hits * HIT_SCORE;
+		} else if (type == T_WRITE) {
+			score += activity->block[off].writes[i].hits * HIT_SCORE;
+		} else
+			assert (1);
+	}
+
+	time_diff = time(NULL) - last_access;
+
+	score *= exp(-1.0 * SCALE * time_diff);
+
+	return score;
+}
+
+float
+get_block_write_score(struct activity_stats *activity, int64_t off) {
+
+	return get_block_score(activity, off, T_WRITE);
+}
+
+float
+get_block_read_score(struct activity_stats *activity, int64_t off) {
+
+	return get_block_score(activity, off, T_READ);
+}
+
 void
 dump_activity_stats(struct activity_stats *activity) {
 
 	for (size_t i=0; i<activity->len; i++) {
-		if (activity->block[i].reads[0].hits)
+		if (activity->block[i].reads[0].hits) {
+			printf("block %lu read score: %e\n", i, get_block_read_score(activity, i));
 			for(int j=0; j<HISTORY_LEN; j++) {
 				if (activity->block[i].reads[j].hits == 0)
 					break;
-				printf("block read: %lu, time: %lu, hits: %i\n",
-					i, (uint64_t)activity->block[i].reads[j].time,
-					activity->block[i].reads[j].hits);
+			//	printf("block read: %lu, time: %lu, hits: %i\n",
+			//		i, (uint64_t)activity->block[i].reads[j].time,
+			//		activity->block[i].reads[j].hits);
 			}
-		if (activity->block[i].writes[0].hits)
+		}
+		if (activity->block[i].writes[0].hits) {
+			printf("block %lu write score: %e\n", i, get_block_write_score(activity, i));
 			for (int j=0; j<HISTORY_LEN; j++) {
 				if (activity->block[i].writes[j].hits == 0)
 					break;
-				printf("block write: %lu, time: %lu, hits: %i\n",
-					i, (uint64_t)activity->block[i].writes[j].time,
-					activity->block[i].writes[j].hits);
+			//	printf("block write: %lu, time: %lu, hits: %i\n",
+			//		i, (uint64_t)activity->block[i].writes[j].time,
+			//		activity->block[i].writes[j].hits);
 			}
+		}
 	}
 }
 
