@@ -396,7 +396,7 @@ void init_le_to_pe()
 
     lvm2_log_level(handle, 1);
     r = lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
-        "seg_start_pe,segtype");
+        "seg_start_pe,segtype --units=b");
 
 //    if (r)
 //      fprintf(stderr, "command failed\n");
@@ -405,7 +405,7 @@ void init_le_to_pe()
 
     lvm2_log_fn(parse_vgs_pe_size);
 
-    r = lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings");
+    r = lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings --units=b");
 
     lvm2_exit(handle);
 
