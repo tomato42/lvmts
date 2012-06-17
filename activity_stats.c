@@ -231,7 +231,9 @@ dump_activity_stats(struct activity_stats *activity) {
 
 	for (size_t i=0; i<activity->len; i++) {
 		if (activity->block[i].reads[0].hits) {
-			printf("block %lu read score: %e\n", i, get_block_read_score(activity, i));
+			printf("block %lu, last access: %lu, read score: %e\n",
+				i, activity->block[i].reads[0].time,
+				get_block_read_score(activity, i));
 			for(int j=0; j<HISTORY_LEN; j++) {
 				if (activity->block[i].reads[j].hits == 0)
 					break;
@@ -241,7 +243,9 @@ dump_activity_stats(struct activity_stats *activity) {
 			}
 		}
 		if (activity->block[i].writes[0].hits) {
-			printf("block %lu write score: %e\n", i, get_block_write_score(activity, i));
+			printf("block %lu, last access: %lu, write score: %e\n",
+				i, activity->block[i].writes[0].time,
+				get_block_write_score(activity, i));
 			for (int j=0; j<HISTORY_LEN; j++) {
 				if (activity->block[i].writes[j].hits == 0)
 					break;
