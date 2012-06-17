@@ -65,18 +65,18 @@ int _compare_segments(const void *a, const void *b)
 
 void sort_segments(struct pv_allocations *segments, size_t nmemb)
 {
-    qsort(segments, nmemb, sizeof(struct pv_allocations), _compare_segments);    
+    qsort(segments, nmemb, sizeof(struct pv_allocations), _compare_segments);
 }
 
 // add information about physical segment to global variable pv_segments
 void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
-    char *lv_name, char *pv_type, uint64_t pv_start, uint64_t pv_length, 
+    char *lv_name, char *pv_type, uint64_t pv_start, uint64_t pv_length,
     uint64_t lv_start)
 {
     if(pv_segments_num==0)
         pv_segments = calloc(sizeof(struct pv_allocations), 1);
 
-    if(!pv_segments) 
+    if(!pv_segments)
         goto segment_failure;
 
 #define str_copy_alloc(N, X) pv_segments[(N)].X = malloc(strlen(X)+1);  \
@@ -91,7 +91,7 @@ void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
         str_copy_alloc(0, vg_attr);
         str_copy_alloc(0, lv_name);
         str_copy_alloc(0, pv_type);
-        
+
         pv_segments[0].pv_start = pv_start;
         pv_segments[0].pv_length = pv_length;
         pv_segments[0].lv_start = lv_start;
@@ -99,7 +99,7 @@ void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
         return;
     }
 
-    pv_segments = realloc(pv_segments, 
+    pv_segments = realloc(pv_segments,
         sizeof(struct pv_allocations)*(pv_segments_num+1));
     if (!pv_segments)
       goto segment_failure;
@@ -110,7 +110,7 @@ void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
     str_copy_alloc(pv_segments_num, vg_attr);
     str_copy_alloc(pv_segments_num, lv_name);
     str_copy_alloc(pv_segments_num, pv_type);
-    
+
     pv_segments[pv_segments_num].pv_start = pv_start;
     pv_segments[pv_segments_num].pv_length = pv_length;
     pv_segments[pv_segments_num].lv_start = lv_start;
@@ -134,8 +134,8 @@ void parse_pvs_segments(int level, const char *file, int line,
     if (level != 4)
       return;
 
-    char pv_name[4096]={0}, vg_name[4096]={0}, vg_format[4096]={0}, 
-         vg_attr[4096]={0}, pv_size[4096]={0}, pv_free[4096]={0}, 
+    char pv_name[4096]={0}, vg_name[4096]={0}, vg_format[4096]={0},
+         vg_attr[4096]={0}, pv_size[4096]={0}, pv_free[4096]={0},
          lv_name[4096]={0}, pv_type[4096]={0};
     int pv_start=0, pv_length=0, lv_start=0;
     int r;
@@ -143,19 +143,19 @@ void parse_pvs_segments(int level, const char *file, int line,
     // try to match standard format (allocated extents)
     r = sscanf(format, " %4095s %4095s %4095s %4095s %4095s "
         "%4095s %40u %40u %4095s %40d %4095s ",
-        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free, 
+        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free,
         &pv_start, &pv_length, lv_name, &lv_start, pv_type);
 
     if (r==EOF) {
         fprintf(stderr, "Error matching line %i: %s\n", line, format);
         goto parse_error;
-    } else if (r != 11) { 
+    } else if (r != 11) {
         // segments with state "free" require matching format without "lv_name"
         lv_name[0]='\000';
 
         r = sscanf(format, " %4095s %4095s %4095s %4095s %4095s %4095s "
             "%40u %40u %40d %4095s ",
-            pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free, 
+            pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free,
             &pv_start, &pv_length, &lv_start, pv_type);
 
         if (r==EOF || r != 10) {
@@ -164,7 +164,7 @@ void parse_pvs_segments(int level, const char *file, int line,
         }
     } else { // r == 11
         // do nothing, correct parse
-    }       
+    }
 
     add_segment(pv_name, vg_name, vg_format, vg_attr, lv_name, pv_type,
         pv_start, pv_length, lv_start);
@@ -173,7 +173,7 @@ void parse_pvs_segments(int level, const char *file, int line,
 //    printf("matched %i fields:", r);
 
 //    printf("%s,%s,%s,%s,%s,%s,%i,%i,%s,%i,%s\n",
-//        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free, 
+//        pv_name, vg_name, vg_format, vg_attr, pv_size, pv_free,
 //        pv_start, pv_length, lv_name, lv_start, pv_type);
 
     // DEBUG
@@ -182,20 +182,20 @@ parse_error:
     return;
 }
 
-// convert logical extent from logical volume specified by lv_name, 
+// convert logical extent from logical volume specified by lv_name,
 // vg_name and logical extent number (le_num) to physical extent
 // on specific device
 struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
 {
     for(size_t i=0; i < pv_segments_num; i++) { // TODO use binary search
-        if(!strcmp(pv_segments[i].vg_name, vg_name) && 
+        if(!strcmp(pv_segments[i].vg_name, vg_name) &&
             !strcmp(pv_segments[i].lv_name, lv_name)) {
 
             if (le_num >= pv_segments[i].lv_start &&
                 le_num < pv_segments[i].lv_start+pv_segments[i].pv_length) {
 
                 struct pv_info *pv_info;
-                
+
                 pv_info = malloc(sizeof(struct pv_info));
                 if (!pv_info) {
                     fprintf(stderr, "Out of memory\n");
@@ -211,7 +211,7 @@ struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
 
                 strcpy(pv_info->pv_name,pv_segments[i].pv_name);
 
-                pv_info->start_seg = pv_segments[i].pv_start + 
+                pv_info->start_seg = pv_segments[i].pv_start +
                   (le_num - pv_segments[i].lv_start);
 
                 return pv_info;
@@ -250,7 +250,7 @@ void parse_vgs_pe_size(int level, const char *file, int line,
 
     double temp;
     char *tail;
-    
+
     temp = strtod(pe_size, &tail);
     if (temp == 0.0) {
         fprintf(stderr, "%s:%i Error parsing line %i: %s\n",
@@ -297,7 +297,7 @@ void parse_vgs_pe_size(int level, const char *file, int line,
         vg_pe_sizes[0].vg_name = malloc(strlen(vg_name)+1);
         if (!vg_pe_sizes[0].vg_name)
             goto vgs_failure;
-        
+
         strcpy(vg_pe_sizes[0].vg_name, vg_name);
         vg_pe_sizes[0].pe_size = pe_size_bytes;
 
@@ -330,10 +330,10 @@ vgs_failure:
 // return size of extents in provided volume group
 uint64_t get_pe_size(char *vg_name)
 {
-    for(size_t i=0; i<vg_pe_sizes_len; i++) 
+    for(size_t i=0; i<vg_pe_sizes_len; i++)
         if (!strcmp(vg_pe_sizes[i].vg_name, vg_name))
             return vg_pe_sizes[i].pe_size;
-    
+
     return 0;
 }
 
@@ -354,7 +354,7 @@ void le_to_pe_exit()
 
     for(size_t i=0; i<vg_pe_sizes_len; i++)
         free(vg_pe_sizes[i].vg_name);
-    
+
     free(vg_pe_sizes);
     vg_pe_sizes = NULL;
     vg_pe_sizes_len = 0;
@@ -368,7 +368,7 @@ void init_le_to_pe()
 
     if(pv_segments)
         le_to_pe_exit();
-    
+
     vg_pe_sizes = NULL;
     vg_pe_sizes_len = 0;
 
@@ -384,7 +384,7 @@ void init_le_to_pe()
 //      fprintf(stderr, "command failed\n");
 
     sort_segments(pv_segments, pv_segments_num);
-    
+
     lvm2_log_fn(parse_vgs_pe_size);
 
     r = lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings");
@@ -410,8 +410,8 @@ uint64_t get_free_extent_number(char *vg_name, char *pv_name)
                 !strcmp(pv_segments[i].pv_type, "free"))
               sum+=pv_segments[i].pv_length;
         }
-    else 
-        for(size_t i=0; i < pv_segments_num; i++) 
+    else
+        for(size_t i=0; i < pv_segments_num; i++)
             if (!strcmp(pv_segments[i].vg_name, vg_name) &&
                 !strcmp(pv_segments[i].pv_type, "free"))
               sum+=pv_segments[i].pv_length;
@@ -427,10 +427,10 @@ int main(int argc, char **argv)
     if (argc <= 1)
       return 1;
 
-    for(int i=0; i < pv_segments_num; i++) 
+    for(int i=0; i < pv_segments_num; i++)
         if(!strcmp(pv_segments[i].lv_name, argv[1]))
             printf("%s %li-%li (%li-%li)\n", pv_segments[i].pv_name,
-                pv_segments[i].pv_start, 
+                pv_segments[i].pv_start,
                 pv_segments[i].pv_start+pv_segments[i].pv_length,
                 pv_segments[i].lv_start,
                 pv_segments[i].lv_start+pv_segments[i].pv_length);
