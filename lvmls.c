@@ -437,7 +437,7 @@ uint64_t get_free_extent_number(char *vg_name, char *pv_name)
     return sum;
 }
 
-/*
+#ifdef STANDALONE
 int main(int argc, char **argv)
 {
     init_le_to_pe();
@@ -469,4 +469,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
-*/
+#endif

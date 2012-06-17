@@ -3,13 +3,16 @@ CC=gcc
 CFLAGS=-std=gnu99 -Wall -pthread -ggdb -lm
 LFLAGS=-llvm2cmd -pthread
 
-all: lvmtsd lvmtscd lvmtscat
+all: lvmtsd lvmtscd lvmtscat lvmls
 
 lvmtsd: lvmtsd.c lvmls.o
 	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd
 
 lvmls.o: lvmls.c
 	$(CC) $(CFLAGS) -c lvmls.c
+
+lvmls: lvmls.c
+	$(CC) $(CFLAGS) lvmls.c $(LFLAGS) -DSTANDALONE -o lvmls
 
 lvmtscd: lvmtscd.c activity_stats.o
 	$(CC) $(CFLAGS) lvmtscd.c activity_stats.o -o lvmtscd
@@ -21,4 +24,4 @@ activity_stats.o: activity_stats.c
 	$(CC) $(CFLAGS) -c activity_stats.c
 
 clean:
-	rm -f lvmtscd lvmtscat lvmtsd *.o
+	rm -f lvmtscd lvmtscat lvmls lvmtsd *.o
