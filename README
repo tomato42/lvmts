@@ -2,24 +2,23 @@ Application for monitoring LVM volumes and moving blocks based on usage to
 higher or lower tier storage.
 
 Dependencies:
+=============
 lvm
 blktrace
 debugfs (mounted in /sys/kernel/debug/)
 
-to compile:
+Compiling:
+==========
 make
 
-lvmtsd is used like this:
-./lvmtsd /dev/vol-grp00/log-vol00
+Usage:
+======
+Run collector daemon:
 
-It will dump collected data (including 200 most active, most written and most
-read blocks in format ready to use with pvmove) when the pipe is broken (killall
-blktrace) and every 5 minutes.
+./lvmtscd -f lvm-volume.lvmts -l /dev/lvm-group/lvm-volume
 
-there is one optional parameter, the number of extents written in status 
-information:
-./lvmtsd <lv-dev-path> [<number-of-extents>]
-for example:
+After some time you can output the stats using cat:
 
-./lvmtsd /dev/VolGrp00/LogVol01 400
+./lvmtscat lvm-volume.lvmts
+
 
