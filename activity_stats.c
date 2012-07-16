@@ -415,7 +415,8 @@ file_cleanup:
 	return ret;
 }
 
-int read_activity_stats(struct activity_stats **activity, char *file) {
+int
+read_activity_stats(struct activity_stats **activity, char *file) {
 	assert(activity);
 	int ret = 0;
 	int n;
