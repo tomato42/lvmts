@@ -503,3 +503,85 @@ file_cleanup:
 
 	return ret;
 }
+
+static void
+add_score_to_block_scores(struct block_scores *bs, size_t size,
+    struct block_scores *block)
+{
+  // empty set case
+  if (size == 0) {
+    memcpy(bs, block, sizeof(struct block_scores));
+    return;
+  }
+
+  // when is better than one of the elements
+  for (size_t i=0; i<size; i++) {
+    if (block->score > bs[i].score) {
+      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * size);
+      memcpy(&(bs[i]), block, sizeof(struct block_scores));
+      return;
+    }
+  }
+
+  // when new element is worse than all others
+  memcpy(&(bs[size]), block, sizeof(struct block_scores));
+
+  return;
+}
+
+static void
+insert_score_to_block_scores(struct block_scores *bs, size_t size,
+    struct block_scores *block)
+{
+
+}
+
+/**
+ * Return "size" best blocks from provided activity stats
+ *
+ * @val activity activity stats to read data from
+ * @val bs[out] found activity stats, sorted from most to least active
+ * @val size number of best blocks to return, also size of bs to allocate,
+ * if *bs is non NULL
+ * @val read_multiplier How much are reads more important than writes, provide
+ * 0 to get only writes
+ * @val write_multiplier How much are writes more important than reads, provide
+ * 0 to get only reads
+ * @return 0 if everything is OK, non zero if it isn't
+ */
+int
+get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
+        size_t size, int read_multiplier, int write_multiplier)
+{
+  assert(read_multiplier && write_multiplier);
+  int f_ret = 0;
+
+  if (!*bs)
+    *bs = malloc(sizeof(struct block_scores)*size);
+
+  if (!*bs) {
+    f_ret = 1;
+    goto no_cleanup;
+  }
+
+  struct block_scores block;
+
+  for (size_t i=0; i<size; i++) {
+    block.offset = i;
+    block.score = get_block_read_score(activity, i) * read_multiplier +
+      get_block_write_score(activity, i) * write_multiplier;
+    add_score_to_block_scores(*bs, i, &block);
+  }
+
+  for (size_t i=size; i<activity->len; i++) {
+    block.score = get_block_read_score(activity, i) * read_multiplier +
+      get_block_write_score(activity, i) * write_multiplier;
+    if (block.score > (*bs)[size-1].score) {
+      block.offset = i;
+      insert_score_to_block_scores(*bs, size, &block);
+    }
+  }
+
+no_cleanup:
+  return f_ret;
+}

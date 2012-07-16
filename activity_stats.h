@@ -41,6 +41,11 @@ struct activity_stats {
 	pthread_mutex_t mutex;
 };
 
+struct block_scores {
+    int64_t offset;
+    float score;
+};
+
 struct activity_stats* new_activity_stats();
 struct activity_stats* new_activity_stats_s(size_t);
 
@@ -62,5 +67,8 @@ void dump_activity_stats(struct activity_stats *activity);
 int write_activity_stats(struct activity_stats *activity, char *file);
 
 int read_activity_stats(struct activity_stats **activity, char *file);
+
+int get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
+    size_t size, int read_multiplier, int write_multiplier);
 
 #endif
