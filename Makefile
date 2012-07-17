@@ -24,4 +24,10 @@ activity_stats.o: activity_stats.c
 	$(CC) $(CFLAGS) -c activity_stats.c
 
 clean:
-	rm -f lvmtscd lvmtscat lvmls lvmtsd *.o
+	rm -f lvmtscd lvmtscat lvmls lvmtsd activity_stats_test *.o
+
+test: activity_stats_test
+	./activity_stats_test
+
+activity_stats_test: activity_stats_test.c activity_stats.c activity_stats.h
+	$(CC) $(CFLAGS) activity_stats_test.c $(LFLAGS) -lcheck -o activity_stats_test
