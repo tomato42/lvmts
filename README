@@ -1,5 +1,6 @@
 Application for monitoring LVM volumes and moving blocks based on usage to 
-higher or lower tier storage.
+faster and slower storage. In other words, Hierarchical Storage Manager
+utilizing LVM on Linux.
 
 Dependencies:
 =============
@@ -20,5 +21,3 @@ Run collector daemon:
 After some time you can output the stats using cat:
 
 ./lvmtscat lvm-volume.lvmts
-
-
