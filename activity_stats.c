@@ -504,6 +504,8 @@ file_cleanup:
 	return ret;
 }
 
+// add data about a block, extending the bs structure (assumes that enough
+// memory has already been allocated)
 static void
 add_score_to_block_scores(struct block_scores *bs, size_t size,
     struct block_scores *block)
@@ -529,11 +531,27 @@ add_score_to_block_scores(struct block_scores *bs, size_t size,
   return;
 }
 
+// Add new data about a block, removing the worst one off the list
 static void
 insert_score_to_block_scores(struct block_scores *bs, size_t size,
     struct block_scores *block)
 {
+  assert(bs);
+  assert(block);
+  assert(size>0);
 
+  if (block->score < bs[size-1].score)
+    return;
+
+  for (size_t i=0; i<size; i++) {
+    if (block->score > bs[i].score) {
+      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size - 1));
+      memcpy(&(bs[i]), block, sizeof(struct block_scores));
+      return;
+    }
+  }
+
+  return;
 }
 
 /**
