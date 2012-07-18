@@ -519,7 +519,7 @@ add_score_to_block_scores(struct block_scores *bs, size_t size,
   // when is better than one of the elements
   for (size_t i=0; i<size; i++) {
     if (block->score > bs[i].score) {
-      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * size);
+      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size-i));
       memcpy(&(bs[i]), block, sizeof(struct block_scores));
       return;
     }
@@ -545,7 +545,7 @@ insert_score_to_block_scores(struct block_scores *bs, size_t size,
 
   for (size_t i=0; i<size; i++) {
     if (block->score > bs[i].score) {
-      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size - 1));
+      memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size-i-1));
       memcpy(&(bs[i]), block, sizeof(struct block_scores));
       return;
     }
