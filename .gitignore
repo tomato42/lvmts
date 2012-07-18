@@ -1,1 +1,8 @@
 a.out
+*.gcov
+*.o
+*.swp
+*.gcda
+*.gcno
+tags
+activity_stats_test
