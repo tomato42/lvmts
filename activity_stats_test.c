@@ -307,6 +307,292 @@ START_TEST(add_final_block_middle_test)
 }
 END_TEST
 
+START_TEST(replace_block_test)
+{
+  size_t size = 10;
+  size_t elems = 0;
+  struct block_scores *bs;
+  bs = malloc(sizeof(struct block_scores) * size);
+
+  fail_unless(bs != NULL);
+
+  struct block_scores block;
+
+  block.offset = 1;
+  block.score = 2.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 4;
+  block.score = 5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 2;
+  block.score = 4;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 3;
+  block.score = 1.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 5;
+  block.score = 1.3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 6;
+  block.score = 1.2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 7;
+  block.score = 1.125;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 8;
+  block.score = 1;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 9;
+  block.score = 3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 10;
+  block.score = 2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+
+  fail_unless(elems == 10);
+
+  block.offset = 11;
+  block.score = 10;
+
+  insert_score_to_block_scores(bs, elems, &block);
+
+  fail_unless(bs[0].offset == 11);
+  fail_unless(bs[0].score == 10);
+  fail_unless(bs[1].offset == 4);
+  fail_unless(bs[1].score == 5);
+  fail_unless(bs[9].offset == 7);
+  fail_unless(bs[9].score == 1.125);
+
+  free(bs);
+}
+END_TEST
+
+START_TEST(replace_block_end_test)
+{
+  size_t size = 10;
+  size_t elems = 0;
+  struct block_scores *bs;
+  bs = malloc(sizeof(struct block_scores) * size);
+
+  fail_unless(bs != NULL);
+
+  struct block_scores block;
+
+  block.offset = 1;
+  block.score = 2.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 4;
+  block.score = 5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 2;
+  block.score = 4;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 3;
+  block.score = 1.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 5;
+  block.score = 1.3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 6;
+  block.score = 1.2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 7;
+  block.score = 1.1875;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 8;
+  block.score = 1.0625;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 9;
+  block.score = 3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 10;
+  block.score = 2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+
+  fail_unless(elems == 10);
+
+  block.offset = 11;
+  block.score = 1.125;
+
+  insert_score_to_block_scores(bs, elems, &block);
+
+  fail_unless(bs[0].offset == 4);
+  fail_unless(bs[0].score == 5);
+  fail_unless(bs[1].offset == 2);
+  fail_unless(bs[1].score == 4);
+  fail_unless(bs[8].offset == 7);
+  fail_unless(bs[8].score == 1.1875);
+  fail_unless(bs[9].offset == 11);
+  fail_unless(bs[9].score == 1.125);
+
+  free(bs);
+}
+END_TEST
+
+START_TEST(replace_block_middle_test)
+{
+  size_t size = 10;
+  size_t elems = 0;
+  struct block_scores *bs;
+  bs = malloc(sizeof(struct block_scores) * size);
+
+  fail_unless(bs != NULL);
+
+  struct block_scores block;
+
+  block.offset = 1;
+  block.score = 2.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 4;
+  block.score = 5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 2;
+  block.score = 4;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 3;
+  block.score = 1.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 5;
+  block.score = 1.3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 6;
+  block.score = 1.2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 7;
+  block.score = 1.1875;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 8;
+  block.score = 1.0625;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 9;
+  block.score = 3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 10;
+  block.score = 2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+
+  fail_unless(elems == 10);
+
+  block.offset = 11;
+  block.score = 2.125;
+
+  insert_score_to_block_scores(bs, elems, &block);
+
+  fail_unless(bs[0].offset == 4);
+  fail_unless(bs[0].score == 5);
+  fail_unless(bs[1].offset == 2);
+  fail_unless(bs[1].score == 4);
+  fail_unless(bs[4].offset == 11);
+  fail_unless(bs[4].score == 2.125);
+  fail_unless(bs[9].offset == 7);
+  fail_unless(bs[9].score == 1.1875);
+
+  free(bs);
+}
+END_TEST
+
+START_TEST(replace_block_none_test)
+{
+  size_t size = 10;
+  size_t elems = 0;
+  struct block_scores *bs;
+  bs = malloc(sizeof(struct block_scores) * size);
+
+  fail_unless(bs != NULL);
+
+  struct block_scores block;
+
+  block.offset = 1;
+  block.score = 2.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 4;
+  block.score = 5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 2;
+  block.score = 4;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 3;
+  block.score = 1.5;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 5;
+  block.score = 1.3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 6;
+  block.score = 1.2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 7;
+  block.score = 1.1875;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 8;
+  block.score = 1.0625;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 9;
+  block.score = 3;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+  block.offset = 10;
+  block.score = 2;
+  add_score_to_block_scores(bs, elems, &block);
+  elems++;
+
+  fail_unless(elems == 10);
+
+  block.offset = 11;
+  block.score = 0.125;
+
+  insert_score_to_block_scores(bs, elems, &block);
+
+  fail_unless(bs[0].offset == 4);
+  fail_unless(bs[0].score == 5);
+  fail_unless(bs[1].offset == 2);
+  fail_unless(bs[1].score == 4);
+  fail_unless(bs[8].offset == 7);
+  fail_unless(bs[8].score == 1.1875);
+  fail_unless(bs[9].offset == 8);
+  fail_unless(bs[9].score == 1.0625);
+
+  free(bs);
+}
+END_TEST
+
 Suite *
 block_scores_suite(void)
 {
@@ -317,7 +603,13 @@ block_scores_suite(void)
   tcase_add_test(tc, add_block_full_test);
   tcase_add_test(tc, add_final_block_front_test);
   tcase_add_test(tc, add_final_block_middle_test);
+  suite_add_tcase(s, tc);
 
+  tc = tcase_create("replacing block_scores");
+  tcase_add_test(tc, replace_block_test);
+  tcase_add_test(tc, replace_block_end_test);
+  tcase_add_test(tc, replace_block_middle_test);
+  tcase_add_test(tc, replace_block_none_test);
   suite_add_tcase(s, tc);
 
   return s;
