@@ -30,4 +30,4 @@ test: activity_stats_test
 	./activity_stats_test
 
 activity_stats_test: activity_stats_test.c activity_stats.c activity_stats.h
-	$(CC) $(CFLAGS) activity_stats_test.c $(LFLAGS) -lcheck -o activity_stats_test
+	$(CC) $(CFLAGS) -fprofile-arcs -ftest-coverage activity_stats_test.c $(LFLAGS) -lcheck -o activity_stats_test
