@@ -517,6 +517,8 @@ add_score_to_block_scores(struct block_scores *bs, size_t size,
   }
 
   // when is better than one of the elements
+  // TODO can be made n log n, instead of n^2, by using binary search instead
+  // of linear
   for (size_t i=0; i<size; i++) {
     if (block->score > bs[i].score) {
       memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size-i));
@@ -543,6 +545,8 @@ insert_score_to_block_scores(struct block_scores *bs, size_t size,
   if (block->score < bs[size-1].score)
     return;
 
+  // TODO can be made n log n, instead of n^2, by using binary search instead
+  // of linear
   for (size_t i=0; i<size; i++) {
     if (block->score > bs[i].score) {
       memmove(&(bs[i+1]), &(bs[i]), sizeof(struct block_scores) * (size-i-1));
