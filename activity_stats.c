@@ -554,6 +554,14 @@ insert_score_to_block_scores(struct block_scores *bs, size_t size,
   return;
 }
 
+// dump collected block_scores
+static void
+print_block_scores(struct block_scores *bs, size_t size)
+{
+  for(size_t i=0; i<size; i++)
+    printf("block %10li score: %8f\n", bs[i].offset, bs[i].score);
+}
+
 /**
  * Return "size" best blocks from provided activity stats
  *
