@@ -583,7 +583,7 @@ int
 get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
         size_t size, int read_multiplier, int write_multiplier)
 {
-  assert(read_multiplier && write_multiplier);
+  assert(read_multiplier || write_multiplier);
   int f_ret = 0;
 
   if (!*bs)
@@ -632,7 +632,7 @@ int
 get_best_blocks_with_max_score(struct activity_stats *activity, struct block_scores **bs,
         size_t size, int read_multiplier, int write_multiplier, float max_score)
 {
-  assert(read_multiplier && write_multiplier);
+  assert(read_multiplier || write_multiplier);
   int f_ret = 0;
 
   if (!*bs)
