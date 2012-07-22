@@ -72,4 +72,8 @@ int read_activity_stats(struct activity_stats **activity, char *file);
 int get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
     size_t size, int read_multiplier, int write_multiplier);
 
+int get_best_blocks_with_max_score(struct activity_stats *activity,
+		struct block_scores **bs, size_t size, int read_multiplier,
+		int write_multiplier, float max_score);
+
 #endif
