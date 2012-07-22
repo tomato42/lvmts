@@ -63,6 +63,7 @@ int add_block_write(struct activity_stats *activity,
 
 /* print statistics to stdout */
 void dump_activity_stats(struct activity_stats *activity);
+void print_block_scores(struct block_scores *bs, size_t size);
 
 int write_activity_stats(struct activity_stats *activity, char *file);
 
