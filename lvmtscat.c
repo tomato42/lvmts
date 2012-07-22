@@ -39,7 +39,16 @@ main(int argc, char **argv)
 	n = read_activity_stats(&as, argv[1]);
 	assert(!n);
 
-	dump_activity_stats(as);
+	struct block_scores *bs = NULL;
+
+	get_best_blocks(as, &bs, 100, 1, 100);
+
+	print_block_scores(bs, 100);
+
+	free(bs);
+	bs = NULL;
+
+	//dump_activity_stats(as);
 
 	destroy_activity_stats(as);
 	as = NULL;
