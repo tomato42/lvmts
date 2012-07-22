@@ -615,3 +615,60 @@ get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
 no_cleanup:
   return f_ret;
 }
+
+/** get best n blocks with score equal and lower than provided
+ * @val activity activity stats to read data from
+ * @val bs[out] found activity stats, sorted from most to least active
+ * @val size number of best blocks to return, also size of bs to allocate,
+ * if *bs is non NULL
+ * @val read_multiplier How much are reads more important than writes, provide
+ * 0 to get only writes
+ * @val write_multiplier How much are writes more important than reads, provide
+ * 0 to get only reads
+ * @val max_score Highest score a block can have
+ * @return 0 if everything is OK, non zero if it isn't
+ */
+int
+get_best_blocks_with_max_score(struct activity_stats *activity, struct block_scores **bs,
+        size_t size, int read_multiplier, int write_multiplier, float max_score)
+{
+  assert(read_multiplier && write_multiplier);
+  int f_ret = 0;
+
+  if (!*bs)
+    *bs = malloc(sizeof(struct block_scores)*size);
+
+  if (!*bs) {
+    f_ret = 1;
+    goto no_cleanup;
+  }
+
+  struct block_scores block;
+
+  size_t count=0;
+  size_t i=0;
+  for (; count<size && count < activity->len; i++) {
+    block.offset = i;
+    block.score = get_block_read_score(activity, i) * read_multiplier +
+      get_block_write_score(activity, i) * write_multiplier;
+    if (block.score > max_score)
+	continue;
+    count++;
+    add_score_to_block_scores(*bs, count, &block);
+  }
+
+  if (count != size)
+    return f_ret; // there are less qualifying blocks in activity that places in block_scores
+
+  for (; i<activity->len; i++) {
+    block.score = get_block_read_score(activity, i) * read_multiplier +
+      get_block_write_score(activity, i) * write_multiplier;
+    if (block.score > (*bs)[size-1].score) {
+      block.offset = i;
+      insert_score_to_block_scores(*bs, size, &block);
+    }
+  }
+
+no_cleanup:
+  return f_ret;
+}
