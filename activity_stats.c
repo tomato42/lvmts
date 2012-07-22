@@ -653,8 +653,8 @@ get_best_blocks_with_max_score(struct activity_stats *activity, struct block_sco
       get_block_write_score(activity, i) * write_multiplier;
     if (block.score > max_score)
 	continue;
-    count++;
     add_score_to_block_scores(*bs, count, &block);
+    count++;
   }
 
   if (count != size)
