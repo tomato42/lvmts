@@ -663,6 +663,8 @@ get_best_blocks_with_max_score(struct activity_stats *activity, struct block_sco
   for (; i<activity->len; i++) {
     block.score = get_block_read_score(activity, i) * read_multiplier +
       get_block_write_score(activity, i) * write_multiplier;
+    if (block.score > max_score)
+	continue;
     if (block.score > (*bs)[size-1].score) {
       block.offset = i;
       insert_score_to_block_scores(*bs, size, &block);
