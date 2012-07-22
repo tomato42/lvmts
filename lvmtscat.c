@@ -21,7 +21,108 @@
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "activity_stats.h"
+
+int blocks = 100;
+int read_mult = 1;
+int write_mult = 10;
+float max_score;
+int get_max = 0;
+char *file = NULL;
+
+void
+usage(void)
+{
+  printf("Usage: lvmtscat [options] file.lvmts\n");
+  printf("\n");
+  printf(" -b,--blocks            Number of blocks to print\n");
+  printf(" -r,--read-multiplier   Read score multiplier\n");
+  printf(" -w,--write-multiplier  Write score multiplier\n");
+  printf(" -m,--max-score         Don't print blocks with score higher than that\n");
+  printf(" -?,--help              This message\n");
+}
+
+int
+parse_arguments(int argc, char **argv)
+{
+  int c;
+  int f_ret = 0;
+
+  struct option long_options[] = {
+			  {"blocks",           required_argument, 0, 'b' }, // 0
+			  {"read-multiplier",  required_argument, 0, 'r' }, // 1
+			  {"write-multiplier", required_argument, 0, 'w' }, // 2
+			  {"max-score",        required_argument, 0, 'm' }, // 3
+			  {"help",             no_argument,       0, '?' }, // 4
+			  {0, 0, 0, 0}
+  };
+
+  int64_t tmp_lint;
+  float a;
+
+  while(1) {
+    int option_index = 0;
+
+    c = getopt_long(argc, argv, "b:r:w:m:?", long_options, &option_index);
+
+    if (c == -1)
+      break;
+
+    switch(c) {
+      case 0: /* long options */
+	break;
+      case 'b':
+	tmp_lint = atoll(optarg);
+	if (tmp_lint <= 0) {
+          fprintf(stderr, "Number of blocks must be larger than zero!\n");
+	  f_ret = 1;
+	  break;
+	}
+	blocks = tmp_lint;
+	break;
+      case 'r':
+	tmp_lint = atoll(optarg);
+	if (tmp_lint < 0) {
+	  fprintf(stderr, "Read multiplier can't be negative!\n");
+	  f_ret = 1;
+	  break;
+	}
+	read_mult = tmp_lint;
+	break;
+      case 'w':
+	tmp_lint = atoll(optarg);
+	if (tmp_lint < 0) {
+		fprintf(stderr, "Write multiplier can't be negative!\n");
+		f_ret = 1;
+		break;
+	}
+	write_mult = tmp_lint;
+	break;
+      case 'm':
+	a = atof(optarg);
+	if (a <= 0) {
+		fprintf(stderr, "Max score must be larger than zero!\n");
+		f_ret = 1;
+		break;
+	}
+	get_max = 1;
+	max_score = a;
+	break;
+      case '?':
+	// TODO help
+	break;
+      default:
+	fprintf(stderr, "Unknown option: %c\n", c);
+	break;
+    }
+  }
+
+  if (f_ret == 0)
+    file = argv[optind];
+
+  return f_ret;
+}
 
 int
 main(int argc, char **argv)
@@ -29,21 +130,28 @@ main(int argc, char **argv)
 	int ret = 0;
 	int n;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s stats-file.lvmts\n", argv[0]);
+	if (parse_arguments(argc, argv))
 		return 1;
-	}
 
 	struct activity_stats *as = NULL;
 
-	n = read_activity_stats(&as, argv[1]);
+	if (file == NULL) {
+	  usage();
+	  return 1;
+	}
+
+	n = read_activity_stats(&as, file);
 	assert(!n);
 
 	struct block_scores *bs = NULL;
 
-	get_best_blocks(as, &bs, 100, 1, 100);
+	if(get_max)
+	   get_best_blocks_with_max_score(as, &bs, blocks, read_mult,
+			   write_mult, max_score);
+	else
+	   get_best_blocks(as, &bs, blocks, read_mult, write_mult);
 
-	print_block_scores(bs, 100);
+	print_block_scores(bs, blocks);
 
 	free(bs);
 	bs = NULL;
