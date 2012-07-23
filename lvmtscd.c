@@ -278,9 +278,9 @@ collect_trace_points(char *device,
 		if (n)
 			continue;
 
-		if (!strcmp(tp->action, "Q") && tp->len) {
+		if (!strcmp(tp->action, "Q") && tp->len) { // only queued operations
 			tim = trace_start + tp->nanoseconds / NS_IN_S;
-			if (strchr(tp->rwbs_data, 'R') != NULL) {
+			if (strchr(tp->rwbs_data, 'R') != NULL) { // read
 				while(trace_blocks_to_extents(&tp->block,
 							&tp->len, &extent,
 							ssize, esize))
@@ -288,7 +288,7 @@ collect_trace_points(char *device,
 							granularity);
 				add_block_read(activity, extent, tim,
 						granularity);
-			} else if (strchr(tp->rwbs_data, 'W') != NULL ) {
+			} else if (strchr(tp->rwbs_data, 'W') != NULL ) { // write
 				while(trace_blocks_to_extents(&tp->block,
 							&tp->len, &extent,
 							ssize, esize))
