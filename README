@@ -21,3 +21,8 @@ Run collector daemon:
 After some time you can output the stats using cat:
 
 ./lvmtscat lvm-volume.lvmts
+
+To get 25 most active blocks formatted as a parameter to pvmove, use following
+command:
+
+./lvmtscat -b 25 --pvmove lvm-volume.lvmts

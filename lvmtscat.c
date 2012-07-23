@@ -30,6 +30,7 @@ int write_mult = 10;
 float max_score;
 int get_max = 0;
 char *file = NULL;
+int pvmove_output = 0;
 
 void
 usage(void)
@@ -40,6 +41,7 @@ usage(void)
   printf(" -r,--read-multiplier   Read score multiplier\n");
   printf(" -w,--write-multiplier  Write score multiplier\n");
   printf(" -m,--max-score         Don't print blocks with score higher than that\n");
+  printf(" --pvmove               Use pvmove-compatible output\n");
   printf(" -?,--help              This message\n");
 }
 
@@ -55,6 +57,7 @@ parse_arguments(int argc, char **argv)
 			  {"write-multiplier", required_argument, 0, 'w' }, // 2
 			  {"max-score",        required_argument, 0, 'm' }, // 3
 			  {"help",             no_argument,       0, '?' }, // 4
+              {"pvmove",           no_argument,       0, 0 }, // 5
 			  {0, 0, 0, 0}
   };
 
@@ -71,6 +74,11 @@ parse_arguments(int argc, char **argv)
 
     switch(c) {
       case 0: /* long options */
+        switch(option_index) {
+          case 5:
+            pvmove_output = 1;
+            break;
+        }
 	break;
       case 'b':
 	tmp_lint = atoll(optarg);
@@ -151,7 +159,15 @@ main(int argc, char **argv)
 	else
 	   get_best_blocks(as, &bs, blocks, read_mult, write_mult);
 
-	print_block_scores(bs, blocks);
+    if (pvmove_output) {
+        printf("%li", bs[0].offset);
+        for (int i=1; i< blocks; i++) {
+            printf(":%li", bs[i].offset);
+        }
+        printf("\n");
+    } else {
+	    print_block_scores(bs, blocks);
+    }
 
 	free(bs);
 	bs = NULL;
