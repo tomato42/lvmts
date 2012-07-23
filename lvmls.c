@@ -79,10 +79,9 @@ void add_segment(char *pv_name, char *vg_name, char *vg_format, char *vg_attr,
     if(!pv_segments)
         goto segment_failure;
 
-#define str_copy_alloc(N, X) pv_segments[(N)].X = malloc(strlen(X)+1);  \
+#define str_copy_alloc(N, X) pv_segments[(N)].X = strdup(X);            \
     if(!pv_segments[(N)].X)                                             \
-        goto segment_failure;                                           \
-    strcpy(pv_segments[(N)].X, X);
+        goto segment_failure;
 
     if (pv_segments_num==0) {
         str_copy_alloc(0, pv_name);
@@ -202,14 +201,11 @@ struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
                     exit(1);
                 }
 
-                pv_info->pv_name = malloc(sizeof(char)
-                    *(strlen(pv_segments[i].pv_name)+1));
+                pv_info->pv_name = strdup(pv_segments[i].pv_name);
                 if (!pv_info->pv_name) {
                     fprintf(stderr, "Out of memory\n");
                     exit(1);
                 }
-
-                strcpy(pv_info->pv_name,pv_segments[i].pv_name);
 
                 pv_info->start_seg = pv_segments[i].pv_start +
                   (le_num - pv_segments[i].lv_start);
