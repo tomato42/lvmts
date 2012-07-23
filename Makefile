@@ -17,8 +17,8 @@ lvmls: lvmls.c
 lvmtscd: lvmtscd.c activity_stats.o
 	$(CC) $(CFLAGS) lvmtscd.c activity_stats.o -o lvmtscd
 
-lvmtscat: lvmtscat.c activity_stats.o
-	$(CC) $(CFLAGS) lvmtscat.c activity_stats.o -o lvmtscat
+lvmtscat: lvmtscat.c activity_stats.o lvmls.o
+	$(CC) $(CFLAGS) lvmtscat.c activity_stats.o lvmls.o $(LFLAGS) -o lvmtscat
 
 activity_stats.o: activity_stats.c
 	$(CC) $(CFLAGS) -c activity_stats.c

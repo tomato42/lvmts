@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "activity_stats.h"
+#include "lvmls.h"
 
 int blocks = 100;
 int read_mult = 1;
@@ -32,11 +33,13 @@ int get_max = 0;
 char *file = NULL;
 int pvmove_output = 0;
 int print_le = 0;
+char *lv_name = NULL;
+char *vg_name = NULL;
 
 void
 usage(void)
 {
-  printf("Usage: lvmtscat [options] [--LE|--LV PathToLogicalVolume] StatsFile\n");
+  printf("Usage: lvmtscat [options] [--LE|--VG VolumeGroupName --LV LogicalVolumeName] StatsFile\n");
   printf("\n");
   printf(" -b,--blocks            Number of blocks to print\n");
   printf(" -r,--read-multiplier   Read score multiplier\n");
@@ -44,7 +47,8 @@ usage(void)
   printf(" -m,--max-score         Don't print blocks with score higher than that\n");
   printf(" --pvmove               Use pvmove-compatible output\n");
   printf(" --LE                   Print logical extents, not physical extents\n");
-  printf(" --LV                   Path to logical volume\n");
+  printf(" --LV                   Name of logical volume\n");
+  printf(" --VG                   Name of volume group\n");
   printf(" -?,--help              This message\n");
 }
 
@@ -62,6 +66,8 @@ parse_arguments(int argc, char **argv)
 			  {"help",             no_argument,       0, '?' }, // 4
               {"pvmove",           no_argument,       0, 0 }, // 5
               {"LE",               no_argument,       0, 0 }, // 6
+              {"LV",               required_argument, 0, 0 }, // 7
+              {"VG",               required_argument, 0, 0 }, // 8
 			  {0, 0, 0, 0}
   };
 
@@ -84,6 +90,12 @@ parse_arguments(int argc, char **argv)
             break;
           case 6:
             print_le = 1;
+            break;
+          case 7:
+            lv_name = optarg;
+            break;
+          case 8:
+            vg_name = optarg;
             break;
         }
 	break;
@@ -156,10 +168,15 @@ main(int argc, char **argv)
 	  return 1;
 	}
 
-    if (!print_le) {
-        fprintf(stderr, "You must ask for logical extents or provide path to physical volume\n");
+    if (!print_le && (!lv_name || !vg_name)) {
+        fprintf(stderr, "You must ask for logical extents or provide volume"
+            " group and logical volume name.\n");
         usage();
         return 1;
+    }
+
+    if (!print_le) {
+        init_le_to_pe();
     }
 
 	n = read_activity_stats(&as, file);
@@ -174,13 +191,41 @@ main(int argc, char **argv)
 	   get_best_blocks(as, &bs, blocks, read_mult, write_mult);
 
     if (pvmove_output) {
-        printf("%li", bs[0].offset);
-        for (int i=1; i< blocks; i++) {
-            printf(":%li", bs[i].offset);
+        if (print_le) {
+            printf("%li", bs[0].offset);
+            for (int i=1; i< blocks; i++) {
+                printf(":%li", bs[i].offset);
+            }
+            printf("\n");
+        } else {
+            struct pv_info *pvi;
+            struct pv_info *pvn;
+            pvi = LE_to_PE(vg_name, lv_name, bs[0].offset);
+            printf("%s:%li", pvi->pv_name, pvi->start_seg);
+            for (int i=1; i<blocks; i++) {
+                pvn = LE_to_PE(vg_name, lv_name, bs[i].offset);
+                if (!pvn)
+                  continue;
+                if (!strcmp(pvi->pv_name, pvn->pv_name)) {
+                    printf(":%li", pvn->start_seg);
+                    pv_info_free(pvn);
+                    continue;
+                } else {
+                    printf("\n%s:%li", pvn->pv_name, pvn->start_seg);
+                    pv_info_free(pvi);
+                    pvi = pvn;
+                    continue;
+                }
+            }
+            printf("\n");
+            pv_info_free(pvi);
         }
-        printf("\n");
     } else {
-	    print_block_scores(bs, blocks);
+        if (!print_le) {
+            fprintf(stderr, "Unsupported combination of parameters"
+                " (add --pvmove or --LE)\n");
+        } else
+	        print_block_scores(bs, blocks);
     }
 
 	free(bs);
@@ -190,6 +235,10 @@ main(int argc, char **argv)
 
 	destroy_activity_stats(as);
 	as = NULL;
+
+    if (!print_le) {
+        le_to_pe_exit();
+    }
 
 	return ret;
 }
