@@ -18,11 +18,12 @@ Run collector daemon:
 
 ./lvmtscd -f lvm-volume.lvmts -l /dev/lvm-group/lvm-volume
 
-After some time you can output the stats using cat:
+After some time you can output the stats using cat (by default it will output
+100 most active blocks with blocks being logical extents):
 
-./lvmtscat lvm-volume.lvmts
+./lvmtscat --LE lvm-volume.lvmts
 
-To get 25 most active logical extents formatted as a parameter to pvmove, use following
+To get 25 most active physical extents formatted as a parameter to pvmove, use following
 command:
 
-./lvmtscat -b 25 --pvmove lvm-volume.lvmts
+./lvmtscat -b 25 --pvmove --VG VolumeGroupName --LV LogicalVolumeName lvm-volume.lvmts
