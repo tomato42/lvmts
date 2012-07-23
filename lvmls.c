@@ -259,23 +259,24 @@ void parse_vgs_pe_size(int level, const char *file, int line,
     }
 
     switch(tail[0]){
-	case 'b':
-	case 'B':
-	    pe_size_bytes = temp;
-	    break;
-	case 'S':
-	    pe_size_bytes = temp * 512;
+	    case 'b':
+	    case 'B':
+	        pe_size_bytes = temp;
+	        break;
+	    case 'S':
+	        pe_size_bytes = temp * 512;
+            break;
         case 'k':
-	    pe_size_bytes = temp * 1024;
-	    break;
+	        pe_size_bytes = temp * 1024;
+	        break;
         case 'K':
             pe_size_bytes = temp * 1000;
             break;
         case 'm':
             pe_size_bytes = temp * 1024 * 1024;
-	    break;
+	        break;
         case 'M':
-	    pe_size_bytes = temp * 1000 * 1000;
+	        pe_size_bytes = temp * 1000 * 1000;
             break;
         case 'g':
             pe_size_bytes = temp * 1024 * 1024 * 1024;
