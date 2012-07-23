@@ -1,5 +1,5 @@
 CC=gcc
-#CFLAGS=-std=gnu99 -Wall -pthread -ggdb -Os
+#CFLAGS=-std=gnu99 -Wall -pthread -ggdb -lm -Os
 CFLAGS=-std=gnu99 -Wall -pthread -ggdb -lm
 LFLAGS=-llvm2cmd -pthread
 
