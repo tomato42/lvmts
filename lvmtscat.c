@@ -31,17 +31,20 @@ float max_score;
 int get_max = 0;
 char *file = NULL;
 int pvmove_output = 0;
+int print_le = 0;
 
 void
 usage(void)
 {
-  printf("Usage: lvmtscat [options] file.lvmts\n");
+  printf("Usage: lvmtscat [options] [--LE|--LV PathToLogicalVolume] StatsFile\n");
   printf("\n");
   printf(" -b,--blocks            Number of blocks to print\n");
   printf(" -r,--read-multiplier   Read score multiplier\n");
   printf(" -w,--write-multiplier  Write score multiplier\n");
   printf(" -m,--max-score         Don't print blocks with score higher than that\n");
   printf(" --pvmove               Use pvmove-compatible output\n");
+  printf(" --LE                   Print logical extents, not physical extents\n");
+  printf(" --LV                   Path to logical volume\n");
   printf(" -?,--help              This message\n");
 }
 
@@ -58,6 +61,7 @@ parse_arguments(int argc, char **argv)
 			  {"max-score",        required_argument, 0, 'm' }, // 3
 			  {"help",             no_argument,       0, '?' }, // 4
               {"pvmove",           no_argument,       0, 0 }, // 5
+              {"LE",               no_argument,       0, 0 }, // 6
 			  {0, 0, 0, 0}
   };
 
@@ -77,6 +81,9 @@ parse_arguments(int argc, char **argv)
         switch(option_index) {
           case 5:
             pvmove_output = 1;
+            break;
+          case 6:
+            print_le = 1;
             break;
         }
 	break;
@@ -144,9 +151,16 @@ main(int argc, char **argv)
 	struct activity_stats *as = NULL;
 
 	if (file == NULL) {
+      fprintf(stderr, "No file name provided\n");
 	  usage();
 	  return 1;
 	}
+
+    if (!print_le) {
+        fprintf(stderr, "You must ask for logical extents or provide path to physical volume\n");
+        usage();
+        return 1;
+    }
 
 	n = read_activity_stats(&as, file);
 	assert(!n);
