@@ -438,6 +438,14 @@ uint64_t get_free_extent_number(char *vg_name, char *pv_name)
     return sum;
 }
 
+void
+pv_info_free(struct pv_info *pv)
+{
+  if (pv->pv_name)
+    free(pv->pv_name);
+  free(pv);
+}
+
 #ifdef STANDALONE
 int main(int argc, char **argv)
 {

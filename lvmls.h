@@ -27,6 +27,8 @@ struct pv_info {
     uint64_t start_seg;
 };
 
+void pv_info_free(struct pv_info *pv);
+
 // convert logical extent from logical volume specified by lv_name,
 // vg_name and logical extent number (le_num) to physical extent
 // on specific device
