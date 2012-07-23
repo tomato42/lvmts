@@ -447,8 +447,12 @@ int main(int argc, char **argv)
 {
     init_le_to_pe();
 
-    if (argc <= 1)
-      return 1;
+    if (argc != 4) {
+        printf("Usage: %s VolumeGroupName LogicalVolumeName"
+            " LogicalVolumeExtent\n", argv[0]);
+        le_to_pe_exit();
+        return 1;
+    }
 
     for(int i=0; i < pv_segments_num; i++)
         if(!strcmp(pv_segments[i].lv_name, argv[1]))
@@ -461,14 +465,16 @@ int main(int argc, char **argv)
     if (argc <= 2)
         return 0;
     struct pv_info *pv_info;
-    pv_info = LE_to_PE("laptom", argv[1], atoi(argv[2]));
+    pv_info = LE_to_PE(argv[1], argv[2], atoi(argv[3]));
     if (pv_info)
-        printf("LE no %i of laptom-%s is at: %s:%li\n", atoi(argv[2]), argv[1],
+        printf("LE no %i of %s-%s is at: %s:%li\n", atoi(argv[3]), argv[1], argv[2],
             pv_info->pv_name, pv_info->start_seg);
     else
         printf("no LE found\n");
 
-    printf("vg: laptom, extent size: %lu bytes\n", get_pe_size("laptom"));
+    pv_info_free(pv_info);
+
+    printf("vg: %s, extent size: %lu bytes\n", argv[1], get_pe_size(argv[1]));
 
     le_to_pe_exit();
 
