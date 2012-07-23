@@ -3,10 +3,10 @@ CC=gcc
 CFLAGS=-std=gnu99 -Wall -pthread -ggdb -lm
 LFLAGS=-llvm2cmd -pthread
 
-all: lvmtsd lvmtscd lvmtscat lvmls
+all: lvmtscd lvmtscat lvmls
 
-lvmtsd: lvmtsd.c lvmls.o
-	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd
+#lvmtsd: lvmtsd.c lvmls.o
+#	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd
 
 lvmls.o: lvmls.c
 	$(CC) $(CFLAGS) -c lvmls.c
