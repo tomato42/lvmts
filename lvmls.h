@@ -17,6 +17,7 @@
  */
 #ifndef _lvmls_h_
 #define _lvmls_h_
+#include <stdint.h>
 
 void init_le_to_pe(void);
 
