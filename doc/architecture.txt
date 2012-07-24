@@ -7,9 +7,9 @@ saves statistics to disk.
 
 It is spawned by lvmtsmd
 
-lvmtsmd
+lvmtsd
 =======
-LVM Tiered Storage Monitor Daemon monitors and spawns other daemons and changes
+LVM Tiered Storage (Monitor) Daemon monitors and spawns other daemons and changes
 to LVM. It is the lvmts user front end.
 
 lvmtsmvd
