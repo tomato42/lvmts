@@ -174,24 +174,6 @@ higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
   return 0;
 }
 
-/**
- * Count extents that are colder/hotter than provided score
- */
-static int
-count_extents(struct extents *e, float score, int hot_cold)
-{
-  return 0;
-}
-
-/**
- * truncate (remove from end) extents to leave len positions
- */
-static void
-truncate_extents(struct extents *e, size_t len)
-{
-  return;
-}
-
 /** controlling daemon main loop */
 static int
 main_loop(struct program_params *pp)

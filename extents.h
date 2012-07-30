@@ -21,9 +21,13 @@ struct extent {
     time_t last_write_access;
 };
 
+/**
+ * List of sorted extents according to their score
+ */
 struct extents {
     struct extent *extents;
     size_t length;
+    int sort;
 };
 
 void free_extents(struct extents *e);
@@ -52,5 +56,15 @@ float get_extent_score(struct extent *e);
 /** Returns a reference for nmemb'th extent in *e
  */
 struct extent * get_extent(struct extents *e, size_t nmemb);
+
+/**
+ * Count extents that are colder/hotter than provided score
+ */
+int count_extents(struct extents *e, float score, int hot_cold);
+
+/**
+ * truncate (remove from end) extents to leave len positions
+ */
+void truncate_extents(struct extents *e, size_t len);
 
 #endif
