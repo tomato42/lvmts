@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 #include "lvmls.h"
 
 /** maximum number of storage tiers */
@@ -108,12 +109,51 @@ struct extent_stats {
 };
 
 struct extents {
+    size_t length;
 };
+
+void
+free_extents(struct extents *e)
+{
+  if (!e)
+    return;
+
+  free(e);
+}
+
+void
+free_extent_stats(struct extent_stats *es)
+{
+  if (!es)
+    return;
+
+  free(es);
+}
+
+static int
+queue_extents_move(struct extents *ext, struct program_params *pp,
+    int dst_tier)
+{
+  return 0;
+}
 
 static char *
 get_first_volume_name(struct program_params *pp)
 {
     return NULL;
+}
+
+static off_t
+get_extent_size(struct program_params *pp, char *lv_name)
+{
+    return 1;
+}
+
+// strcmp for extents
+static int
+compare_extents(struct extents *e1, struct extents *e2)
+{
+  return 0;
 }
 
 static int
@@ -134,6 +174,11 @@ lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
     return 0;
 }
 
+enum hot_cold {
+    ES_HOT = 1,
+    ES_COLD = 2
+};
+
 /**
  * Select best extents that conform to provided criteria
  *
@@ -146,9 +191,45 @@ lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
  */
 static int
 extents_selector(struct extent_stats *es, struct extents **ret,
-    struct program_params *pp, char *lv_name, int max_tier, int max_extents)
+    struct program_params *pp, char *lv_name, int max_tier, int max_extents,
+    int hot_cold)
 {
     return 1;
+}
+
+static int
+add_pinning_scores(struct extent_stats *es, struct program_params *pp,
+    char *lv_name)
+{
+  return 0;
+}
+
+static int
+higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
+{
+  return 0;
+}
+
+struct extent {
+};
+
+static float
+get_extent_score(struct extent *e)
+{
+  assert(e);
+  return 0;
+}
+
+static struct extent *
+get_extent(struct extents *e, size_t nmemb)
+{
+  return NULL;
+}
+
+static int
+remove_extents(struct extents *e, float score, int hot_cold)
+{
+  return 0;
 }
 
 /** controlling daemon main loop */
@@ -190,7 +271,7 @@ main_loop(struct program_params *pp)
             off_t free_space = get_avaiable_space(pp, lv_name, tier);
             if (free_space < 0) {
                 fprintf(stderr, "get_free_space error\n");
-                break;
+                goto no_cleanup;
             }
 
             if (free_space == 0) {
@@ -200,22 +281,139 @@ main_loop(struct program_params *pp)
                     break;
             }
 
+            // always leave 5 extents worth of free space so that we always
+            // can move cold extents from higher tier
+            off_t available_extents = free_space / get_extent_size(pp, lv_name) - 5;
+            if (available_extents < 0)
+              available_extents = 0;
+
             struct extents *ext = NULL;
-            // 100 - do not select more than 100
-            ret = extents_selector(es, &ext, pp, lv_name, tier, 100);
+
+            // get next hottest min(100, free_space) extents
+            size_t max_extents = 100;
+            if (max_extents > available_extents)
+                max_extents = available_extents;
+
+            ret = extents_selector(es, &ext, pp, lv_name, tier, max_extents, ES_HOT);
+            if (ret) {
+                fprintf(stderr, "extents_selector error\n");
+                goto no_cleanup;
+            }
+
+            if (!ext->length) {
+                free_extents(ext);
+                continue;
+            }
+
+            // move them from slow storage,
+            // until no space left
+            ret = queue_extents_move(ext, pp, tier);
+            if (ret) {
+                fprintf(stderr, "Can't queue extents move\n");
+                goto no_cleanup;
+            }
+
+            free_extents(ext);
+
+            sleep(5*60);
+
+            // continue main loop, free memory before
+            goto cont;
         }
 
+        // pin extents to their current physical volumes, this will cause them
+        // to be moved only when the temperature difference is large
+        ret = add_pinning_scores(es, pp, lv_name);
+        if (ret) {
+            fprintf(stderr, "can't add pining scores\n");
+            goto no_cleanup;
+        }
 
-        // get next min(100, free_space) extents, move them from slow storage,
-        // until no space left
+        // TODO: make sure that there is some free space in every PV (5 extents
+        // for every LV using it)
 
         // when no space left, get stats for all blocks, add big number (10000) to
         // blocks in fast storage. If there are blocks in slow storage with higher
         // score than ones in fast storage, move 10 worst extents from fast to slow
         // if move queued, continue
+        struct extents *prev_tier_max = NULL;
+        int prev_tier = -1;
+        for (int tier = TIER_MAX; tier >= 0; tier--) {
+            off_t free_space = get_avaiable_space(pp, lv_name, tier);
+            if (free_space < 0) {
+                fprintf(stderr, "get_avaiable_space error\n");
+                goto no_cleanup;
+            }
+
+            if (!free_space) {
+                if (higher_tiers_exist(pp, lv_name, tier))
+                  continue;
+                else
+                  break;
+            }
+
+            struct extents *curr_tier_min = NULL;
+
+            if (!prev_tier_max) { // get base line extents
+                ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier,
+                    5, ES_HOT);
+                if (ret) {
+                    fprintf(stderr, "extent_selector error\n");
+                    goto no_cleanup;
+                }
+                prev_tier = tier;
+                continue;
+            }
+
+            ret = extents_selector(es, &curr_tier_min, pp, lv_name, tier, 5, ES_COLD);
+            if (ret) {
+                fprintf(stderr, "%s:%i: extent_selector error\n", __FILE__, __LINE__);
+                goto no_cleanup;
+            }
+
+            // check if extents in lower tier aren't hotter
+            if (compare_extents(prev_tier_max, curr_tier_min) < 0) {
+                float prev_score = get_extent_score(get_extent(prev_tier_max, 0));
+                float curr_score = get_extent_score(get_extent(curr_tier_min, 0));
+                // remove extents that would be colder (or hotter) than extents
+                // moved to the other tier
+                remove_extents(prev_tier_max, curr_score, ES_COLD);
+                remove_extents(curr_tier_min, prev_score, ES_HOT);
+
+                // queue move of extents that remain
+                ret = queue_extents_move(prev_tier_max, pp, tier);
+                if (ret) {
+                    fprintf(stderr, "%s:%i: queue extents failed\n", __FILE__, __LINE__);
+                    goto no_cleanup;
+                }
+                ret = queue_extents_move(curr_tier_min, pp, prev_tier);
+                if (ret) {
+                    fprintf(stderr, "%s:%i: queue extents failed\n", __FILE__, __LINE__);
+                    goto no_cleanup;
+                }
+            }
+
+            free_extents(curr_tier_min);
+            free_extents(prev_tier_max);
+            prev_tier_max = NULL;
+
+            // remember previous tier extents
+            ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier, 5, ES_HOT);
+            if (ret) {
+                fprintf(stderr, "%s:%i: Extent_selector error\n", __FILE__, __LINE__);
+                goto no_cleanup;
+            }
+            prev_tier = tier;
+        }
 
         // wait 10 minutes
+        sleep(10*60);
+
+cont:
+        free_extent_stats(es);
     }
+
+no_cleanup:
 
     if (stop)
         return 0;
