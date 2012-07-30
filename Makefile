@@ -5,8 +5,11 @@ LFLAGS=-llvm2cmd -pthread
 
 all: lvmtscd lvmtscat lvmls lvmtsd
 
-lvmtsd: lvmtsd.c lvmls.o
-	$(CC) $(CFLAGS) lvmtsd.c lvmls.o $(LFLAGS) -o lvmtsd
+lvmtsd: lvmtsd.c lvmls.o extents.o
+	$(CC) $(CFLAGS) lvmtsd.c lvmls.o extents.o $(LFLAGS) -o lvmtsd
+
+extents.o: extents.c
+	$(CC) $(CFLAGS) -c extents.c
 
 lvmls.o: lvmls.c
 	$(CC) $(CFLAGS) -c lvmls.c

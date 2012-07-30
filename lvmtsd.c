@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include "lvmls.h"
+#include "extents.h"
 
 /** maximum number of storage tiers */
 #define TIER_MAX 65536
@@ -105,31 +106,6 @@ move_daemon_status(struct program_params *pp, char *lv_name)
     return PVMOVE_IDLE;
 }
 
-struct extent_stats {
-};
-
-struct extents {
-    size_t length;
-};
-
-void
-free_extents(struct extents *e)
-{
-  if (!e)
-    return;
-
-  free(e);
-}
-
-void
-free_extent_stats(struct extent_stats *es)
-{
-  if (!es)
-    return;
-
-  free(es);
-}
-
 static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
     int dst_tier)
@@ -149,13 +125,6 @@ get_extent_size(struct program_params *pp, char *lv_name)
     return 1;
 }
 
-// strcmp for extents
-static int
-compare_extents(struct extents *e1, struct extents *e2)
-{
-  return 0;
-}
-
 static int
 get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats **es)
 {
@@ -173,11 +142,6 @@ lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {
     return 0;
 }
-
-enum hot_cold {
-    ES_HOT = 1,
-    ES_COLD = 2
-};
 
 /**
  * Select best extents that conform to provided criteria
@@ -208,22 +172,6 @@ static int
 higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {
   return 0;
-}
-
-struct extent {
-};
-
-static float
-get_extent_score(struct extent *e)
-{
-  assert(e);
-  return 0;
-}
-
-static struct extent *
-get_extent(struct extents *e, size_t nmemb)
-{
-  return NULL;
 }
 
 /**
