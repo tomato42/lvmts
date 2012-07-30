@@ -226,10 +226,22 @@ get_extent(struct extents *e, size_t nmemb)
   return NULL;
 }
 
+/**
+ * Count extents that are colder/hotter than provided score
+ */
 static int
-remove_extents(struct extents *e, float score, int hot_cold)
+count_extents(struct extents *e, float score, int hot_cold)
 {
   return 0;
+}
+
+/**
+ * truncate (remove from end) extents to leave len positions
+ */
+static void
+truncate_extents(struct extents *e, size_t len)
+{
+  return;
 }
 
 /** controlling daemon main loop */
@@ -329,9 +341,6 @@ main_loop(struct program_params *pp)
             goto no_cleanup;
         }
 
-        // TODO: make sure that there is some free space in every PV (5 extents
-        // for every LV using it)
-
         // when no space left, get stats for all blocks, add big number (10000) to
         // blocks in fast storage. If there are blocks in slow storage with higher
         // score than ones in fast storage, move 10 worst extents from fast to slow
@@ -375,10 +384,17 @@ main_loop(struct program_params *pp)
             if (compare_extents(prev_tier_max, curr_tier_min) < 0) {
                 float prev_score = get_extent_score(get_extent(prev_tier_max, 0));
                 float curr_score = get_extent_score(get_extent(curr_tier_min, 0));
-                // remove extents that would be colder (or hotter) than extents
-                // moved to the other tier
-                remove_extents(prev_tier_max, curr_score, ES_COLD);
-                remove_extents(curr_tier_min, prev_score, ES_HOT);
+                // don't move more extents that would push very hot extents
+                // to low tier or cold extents to higher tier when there is
+                // more cold extents to swap than hotter and vice-versa
+                int prev_count = count_extents(prev_tier_max, curr_score, ES_COLD);
+                int curr_count = count_extents(curr_tier_min, prev_score, ES_HOT);
+
+                int move_extents =
+                  (prev_count > curr_count)?curr_count:prev_count;
+
+                truncate_extents(prev_tier_max, move_extents);
+                truncate_extents(curr_tier_min, move_extents);
 
                 // queue move of extents that remain
                 ret = queue_extents_move(prev_tier_max, pp, tier);
