@@ -132,6 +132,9 @@ get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
 static int
 lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {
+    if (tier >= 1)
+        return 1;
+
     return 0;
 }
 
