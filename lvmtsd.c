@@ -127,8 +127,9 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     char *lv_name, int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
-        printf("pvmove %s:%li %s\n", ext->extents[i]->dev,
-            ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier));
+        printf("pvmove --alloc anywhere %s:%li %s # score: %f\n", ext->extents[i]->dev,
+            ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
+            ext->extents[i]->score);
     }
     return 0;
 }
