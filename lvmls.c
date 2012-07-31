@@ -38,8 +38,9 @@ struct pv_allocations {
 struct pv_allocations *pv_segments=NULL;
 size_t pv_segments_num=0;
 
-// helper function to qsort, used to sort phisical extents
-int _compare_segments(const void *a, const void *b)
+// helper function to qsort, used to sort physical extents
+static int
+_compare_segments(const void *a, const void *b)
 {
     struct pv_allocations *alloc_a, *alloc_b;
     int r;
@@ -57,7 +58,7 @@ int _compare_segments(const void *a, const void *b)
 
     if (alloc_a->lv_start == alloc_b->lv_start)
         return 0;
-    else if (alloc_a->lv_start < alloc_b->lv_start)
+    else if (alloc_a->lv_start > alloc_b->lv_start)
         return -1;
     else
         return 1;
