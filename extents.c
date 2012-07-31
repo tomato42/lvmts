@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "extents.h"
+#include "config.h"
 
 void
 free_extents(struct extents *e)
@@ -122,4 +123,12 @@ truncate_extents(struct extents *e, size_t len)
 
     e->extents = ext;
     e->length = len;
+}
+
+// TODO stub
+int
+get_extent_tier(struct program_params *pp, char *lv_name,
+    struct extent *e)
+{
+    return e->dev - get_tier_device(pp, NULL, 0);
 }

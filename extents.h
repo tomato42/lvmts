@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
+struct program_params;
+
 /** extent statistics */
 struct extent_stats {
     struct extent *extents;
@@ -69,5 +71,11 @@ int count_extents(struct extents *e, float score, int hot_cold);
  * truncate (remove from end) extents to leave len positions
  */
 void truncate_extents(struct extents *e, size_t len);
+
+/**
+ * Returns tier of provided extent in logical volume
+ */
+int get_extent_tier(struct program_params *pp, char *lv_name,
+    struct extent *e);
 
 #endif
