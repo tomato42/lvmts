@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <signal.h>
 #include "lvmls.h"
 #include "extents.h"
 #include "volumes.h"
@@ -373,6 +374,17 @@ no_cleanup:
         return 1;
 }
 
+static void
+program_stop_handler(int dummy) {
+    stop = 1;
+    fprintf(stderr, "stopping application\n");
+}
+
+static void
+ignore_signal(int dummy) {
+    return;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -403,7 +415,11 @@ main(int argc, char **argv)
         goto program_params_cleanup;
     }
 
-    // TODO set signal handlers
+    // stop program after receiving ^C in console or "soft" kill
+    // ignore console detachment
+    signal(SIGINT, program_stop_handler);
+    signal(SIGTERM, program_stop_handler);
+    signal(SIGHUP, ignore_signal);
 
     // make sure collector daemon works
     ret = run_collector_daemon(pp);
