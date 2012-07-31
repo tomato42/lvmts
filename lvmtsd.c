@@ -266,7 +266,8 @@ main_loop(struct program_params *pp)
 
             free_extents(ext);
 
-            sleep(pp->pvmove_wait);
+            if (!stop)
+                sleep(pp->pvmove_wait);
 
             // continue main loop, free memory before
             goto cont;
@@ -362,7 +363,8 @@ main_loop(struct program_params *pp)
         }
 
         // wait 10 minutes
-        sleep(10*60);
+        if (!stop)
+            sleep(10*60);
 
 cont:
         free_extent_stats(es);
