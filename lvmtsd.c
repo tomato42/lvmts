@@ -67,28 +67,36 @@ free_program_params(struct program_params *pp)
   free(pp);
 }
 
-/** parse CLI arguments */
+/** parse CLI arguments
+ * TODO
+ */
 static int
 parse_arguments(int argc, char **argv, struct program_params *pp)
 {
   return 0;
 }
 
-/** read configuration file */
+/** read configuration file
+ * TODO
+ */
 static int
 read_config(struct program_params *pp)
 {
   return 0;
 }
 
-/** starts collector deamon processes */
+/** starts collector deamon processes
+ * TODO
+ */
 static int
 run_collector_daemon(struct program_params *pp)
 {
   return 0;
 }
 
-/** checks if there are any stats collected */
+/** checks if there are any stats collected
+ * TODO
+ */
 static int
 stats_available(struct program_params *pp)
 {
@@ -101,14 +109,19 @@ enum pvmove_status {
     PVMOVE_WORKING = 1
 };
 
-/** returns status of pvmove daemon */
+/** returns status of pvmove daemon
+ * TODO stub
+ */
 static int
 move_daemon_status(struct program_params *pp, char *lv_name)
 {
     return PVMOVE_IDLE;
 }
 
-// TODO stub
+/**
+ * Add extents to move queue
+ * TODO stub
+ */
 static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
     char *lv_name, int dst_tier)
@@ -140,6 +153,10 @@ lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
     return 0;
 }
 
+/**
+ * Add scores used for pinning extents to their current tier (so that they
+ * aren't moved back and forth because of small changes in score)
+ */
 static int
 add_pinning_scores(struct extent_stats *es, struct program_params *pp,
     char *lv_name)
@@ -151,6 +168,7 @@ add_pinning_scores(struct extent_stats *es, struct program_params *pp,
     return 0;
 }
 
+// TODO stub
 static int
 higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {

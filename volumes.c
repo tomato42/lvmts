@@ -38,6 +38,7 @@ get_first_volume_name(struct program_params *pp)
     return "stacja-dane";
 }
 
+// selects best or worst extents in collection not residing on specific devices
 int extents_selector(struct extent_stats *es, struct extents **ret,
     struct program_params *pp, char *lv_name, int max_tier, int max_extents,
     int hot_cold)
@@ -50,9 +51,14 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
     (*ret)->length = 0;
     (*ret)->sort = hot_cold;
 
+    // assume we will find `max_extent` extents
     (*ret)->extents = malloc(sizeof(struct extent*) * max_extents);
     assert((*ret)->extents); // TODO error handling
 
+    // a bit complicated for(;;), basically it searches from 0 when we're
+    // looking for hot extents and searches from last extent in `es` in case
+    // we're looking for cold extents. In both cases it doesn't load more than
+    // max_extents to ret
     for(ssize_t i=(hot_cold == ES_HOT)?0:es->length-1;
         (hot_cold == ES_HOT && i < es->length && (*ret)->length < max_extents)
             || (i >= 0 && (*ret)->length < max_extents);
@@ -69,6 +75,7 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
     return 0;
 }
 
+// comparison function for sorting extents according to their score
 static int
 extent_compare(const void *v1, const void *v2)
 {
@@ -90,6 +97,7 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
     int f_ret = 0; // this function return code
     int ret;
 
+    // use the same time base to calculate score of all extents
     time_t now = time(NULL);
 
     *es = malloc(sizeof(struct extent_stats));
@@ -108,6 +116,7 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
     assert((*es)->extents); // XXX better error checking
     (*es)->length = as->len;
 
+    // load LE to PE translation tables
     init_le_to_pe();
 
     // collect general volume parameters
@@ -117,7 +126,7 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
     float scale = get_score_scaling_factor(pp, lv_name);
 
     for(size_t i=0; i < as->len; i++) {
-        // just a shorthand, so that we wouldn't have to write full *es->...
+        // just a shorthand, so that we wouldn't have to write full (*es)->...
         struct extent *e = &((*es)->extents[i]);
 
         // get logical extent to physical extent mapping for extent
@@ -150,10 +159,11 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
         pv_info_free(pv_i);
     }
 
+    // clean up
     le_to_pe_exit();
-
     destroy_activity_stats(as);
 
+    // sort according to score
     qsort((*es)->extents, (*es)->length, sizeof(struct extent),
         extent_compare);
 
