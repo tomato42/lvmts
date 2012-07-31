@@ -45,6 +45,20 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
     return 1;
 }
 
+static int
+extent_compare(const void *v1, const void *v2)
+{
+    struct extent *e1 = (struct extent *)v1;
+    struct extent *e2 = (struct extent *)v2;
+
+    if (e1->score < e2->score)
+      return -1;
+    if (e1->score > e2->score)
+      return 1;
+
+    return 0;
+}
+
 int
 get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats **es)
 {
@@ -116,5 +130,7 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
 
     destroy_activity_stats(as);
 
+    qsort((*es)->extents, (*es)->length, sizeof(struct extent),
+        extent_compare);
     return f_ret;
 }
