@@ -300,13 +300,18 @@ get_block_score(struct activity_stats *activity, int64_t off, int type) {
 
 	double score = 0.0;
 	time_t last_access = 0;
-	int len = 0;
+	time_t time_diff;
+#if 0
+    int len = 0;
 	int i;
 	for(i=0; i<HISTORY_LEN; i++)
 		if ((type == T_READ && activity->block[off].reads[i].hits == 0)
 		   || (type == T_WRITE && activity->block[off].writes[i].hits == 0))
 			break;
 	len = i;
+
+    if (!len)
+        return 0;
 
 	if (type == T_READ) {
 		last_access = activity->block[off].reads[i].time;
@@ -318,7 +323,6 @@ get_block_score(struct activity_stats *activity, int64_t off, int type) {
 		assert(1);
 	}
 
-	time_t time_diff;
 	for(int i=len-1; i>=0; i--) {
 		if (type == T_READ) {
 			time_diff = activity->block[off].reads[i].time - last_access;
@@ -338,6 +342,19 @@ get_block_score(struct activity_stats *activity, int64_t off, int type) {
 		} else
 			assert (1);
 	}
+#else
+
+    score = get_block_activity_raw_score(get_block_activity(activity, off),
+        type, HIT_SCORE, SCALE);
+
+    if (type == T_READ)
+        last_access = get_last_read_time(get_block_activity(activity, off));
+    else if (type == T_WRITE)
+        last_access = get_last_write_time(get_block_activity(activity, off));
+    else
+        assert(1);
+
+#endif
 
 	time_diff = time(NULL) - last_access;
 
