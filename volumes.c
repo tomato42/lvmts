@@ -83,9 +83,9 @@ extent_compare(const void *v1, const void *v2)
     struct extent *e1 = (struct extent *)v1;
     struct extent *e2 = (struct extent *)v2;
 
-    if (e1->score < e2->score)
-      return -1;
     if (e1->score > e2->score)
+      return -1;
+    if (e1->score < e2->score)
       return 1;
 
     return 0;
