@@ -37,6 +37,14 @@ free_extent_stats(struct extent_stats *es)
     if (!es)
         return;
 
+    if (es->extents) {
+        for(size_t i=0; i<es->length; i++) {
+            if (es->extents[i].dev)
+                free(es->extents[i].dev);
+        }
+        free(es->extents);
+    }
+
     free(es);
 }
 
