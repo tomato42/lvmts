@@ -120,6 +120,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     return 0;
 }
 
+// TODO stub
 static off_t
 get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
 {
@@ -129,6 +130,7 @@ get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
     return 0;
 }
 
+// TODO stub
 static int
 lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {

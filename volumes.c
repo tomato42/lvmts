@@ -24,16 +24,18 @@
 #include "activity_stats.h"
 #include "lvmls.h"
 
+// TODO stub
 off_t
 get_extent_size(struct program_params *pp, char *lv_name)
 {
-    return 1;
+    return 4 * 1024 * 1024;
 }
 
+// TODO stub
 char *
 get_first_volume_name(struct program_params *pp)
 {
-    return NULL;
+    return "stacja-dane";
 }
 
 int extents_selector(struct extent_stats *es, struct extents **ret,
