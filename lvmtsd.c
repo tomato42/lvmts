@@ -257,7 +257,7 @@ main_loop(struct program_params *pp)
 
             free_extents(ext);
 
-            sleep(5*60);
+            sleep(pp->pvmove_wait);
 
             // continue main loop, free memory before
             goto cont;
