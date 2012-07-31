@@ -120,7 +120,7 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
     (*es)->length = as->len;
 
     // load LE to PE translation tables
-    init_le_to_pe();
+    init_le_to_pe(pp);
 
     // collect general volume parameters
     float read_mult = get_read_multiplier(pp, lv_name);
@@ -146,6 +146,8 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
 
         // save collected data
         e->dev = strdup(pv_i->pv_name);
+        assert(e->dev); // TODO better error handling
+
         e->le = i;
         e->pe = pv_i->start_seg;
         e->read_score =

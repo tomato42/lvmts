@@ -18,8 +18,9 @@
 #ifndef _lvmls_h_
 #define _lvmls_h_
 #include <stdint.h>
+#include "config.h"
 
-void init_le_to_pe(void);
+void init_le_to_pe(struct program_params *pp);
 
 void le_to_pe_exit(void);
 

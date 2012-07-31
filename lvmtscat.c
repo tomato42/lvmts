@@ -175,8 +175,10 @@ main(int argc, char **argv)
         return 1;
     }
 
+    struct program_params pp = { .lvm2_handle = NULL };
+
     if (!print_le) {
-        init_le_to_pe();
+        init_le_to_pe(&pp);
     }
 
 	n = read_activity_stats(&as, file);

@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <signal.h>
+#include <lvm2cmd.h>
 #include "lvmls.h"
 #include "extents.h"
 #include "volumes.h"
@@ -33,11 +34,6 @@
 
 /** variable defining ordered shutdown */
 int stop = 0;
-
-struct program_params {
-    char *conf_file_path;
-    int pvmove_wait;
-};
 
 /** Create new program_params with default settings */
 static struct program_params*
@@ -64,6 +60,8 @@ free_program_params(struct program_params *pp)
 
   if(pp->conf_file_path)
     free(pp->conf_file_path);
+
+  lvm2_exit(pp->lvm2_handle);
 
   free(pp);
 }

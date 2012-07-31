@@ -1,7 +1,11 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 
-struct program_params;
+struct program_params {
+    char *conf_file_path;
+    int pvmove_wait;
+    void *lvm2_handle;
+};
 
 float get_read_multiplier(struct program_params *pp, char *lv_name);
 

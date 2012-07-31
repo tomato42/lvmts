@@ -337,11 +337,10 @@ void parse_vgs_pe_size(int level, const char *file, int line,
         if (!vg_pe_sizes)
             goto vgs_failure;
 
-        vg_pe_sizes[0].vg_name = malloc(strlen(vg_name)+1);
+        vg_pe_sizes[0].vg_name = strdup(vg_name);
         if (!vg_pe_sizes[0].vg_name)
             goto vgs_failure;
 
-        strcpy(vg_pe_sizes[0].vg_name, vg_name);
         vg_pe_sizes[0].pe_size = pe_size_bytes;
 
         vg_pe_sizes_len=1;
@@ -404,9 +403,8 @@ void le_to_pe_exit()
 }
 
 // initialize or reload cache variables
-void init_le_to_pe()
+void init_le_to_pe(struct program_params *pp)
 {
-    void *handle;
 //    int r;
 
     if(pv_segments)
@@ -415,13 +413,14 @@ void init_le_to_pe()
     vg_pe_sizes = NULL;
     vg_pe_sizes_len = 0;
 
+
     lvm2_log_fn(parse_pvs_segments);
+    if (!pp->lvm2_handle)
+        pp->lvm2_handle = lvm2_init();
 
-    handle = lvm2_init();
-
-    lvm2_log_level(handle, 1);
+    lvm2_log_level(pp->lvm2_handle, 1);
 //    r =
-      lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
+      lvm2_run(pp->lvm2_handle, "pvs --noheadings --segments -o+lv_name,"
         "seg_start_pe,segtype --units=b");
 
 //    if (r)
@@ -432,9 +431,7 @@ void init_le_to_pe()
     lvm2_log_fn(parse_vgs_pe_size);
 
 //    r =
-      lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings --units=b");
-
-    lvm2_exit(handle);
+      lvm2_run(pp->lvm2_handle, "vgs -o vg_name,vg_extent_size --noheadings --units=b");
 
     return;
 }
@@ -475,7 +472,11 @@ pv_info_free(struct pv_info *pv)
 #ifdef STANDALONE
 int main(int argc, char **argv)
 {
-    init_le_to_pe();
+    struct program_params pp = { .lvm2_handle = NULL };
+    printf("pre init\n");
+    init_le_to_pe(&pp);
+    printf("%s:%i\n", __FILE__, __LINE__);
+
 
     if (argc != 4) {
         printf("Usage: %s VolumeGroupName LogicalVolumeName"
@@ -507,6 +508,8 @@ int main(int argc, char **argv)
     printf("vg: %s, extent size: %lu bytes\n", argv[1], get_pe_size(argv[1]));
 
     le_to_pe_exit();
+
+    lvm2_exit(pp.lvm2_handle);
 
     return 0;
 }
