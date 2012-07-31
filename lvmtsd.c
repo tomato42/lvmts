@@ -114,8 +114,8 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
-        printf("pvmove %s:%li %s\n", ext->extents[i].dev,
-            ext->extents[i].pe, get_tier_device(pp, dst_tier));
+        printf("pvmove %s:%li %s\n", ext->extents[i]->dev,
+            ext->extents[i]->pe, get_tier_device(pp, dst_tier));
     }
     return 0;
 }

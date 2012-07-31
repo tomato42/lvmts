@@ -54,13 +54,13 @@ compare_extents(struct extents *e1, struct extents *e2)
     assert(e2);
 
     for(size_t i=0; i < e1->length && e2->length && i < SIZE_MAX; i++) {
-        if (e1->extents[i].score == e2->extents[i].score)
+        if (e1->extents[i]->score == e2->extents[i]->score)
           continue;
 
-        if (e1->extents[i].score > e2->extents[i].score)
+        if (e1->extents[i]->score > e2->extents[i]->score)
           return 1;
 
-        // if (e1->extents[i].score < e2->extents[i].score)
+        // if (e1->extents[i]->score < e2->extents[i]->score)
         return -1;
     }
 
@@ -84,7 +84,7 @@ get_extent(struct extents *e, size_t nmemb)
 {
     assert(e);
     assert(e->length < nmemb);
-    return &(e->extents[nmemb]);
+    return (e->extents[nmemb]);
 }
 
 int
@@ -92,9 +92,9 @@ count_extents(struct extents *e, float score, int hot_cold)
 {
     size_t count = 0;
     for(size_t i=0; i<e->length; i++) {
-        if (hot_cold == ES_COLD && e->extents[i].score > score)
+        if (hot_cold == ES_COLD && e->extents[i]->score > score)
             count++;
-        if (hot_cold == ES_HOT && e->extents[i].score < score)
+        if (hot_cold == ES_HOT && e->extents[i]->score < score)
             count++;
     }
 
@@ -107,12 +107,11 @@ truncate_extents(struct extents *e, size_t len)
     assert(e);
     assert(e->extents);
 
-    if (e->length < len)
-      return;
+    assert(e->length < len);
 
-    struct extent *ext;
+    struct extent **ext;
 
-    ext = realloc(e->extents, sizeof(struct extent) * len);
+    ext = realloc(e->extents, sizeof(struct extent*) * len);
 
     if (!ext) {
         free(e->extents);

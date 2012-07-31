@@ -25,10 +25,10 @@ struct extent {
 };
 
 /**
- * List of sorted extents according to their score
+ * List of sorted extent references according to score
  */
 struct extents {
-    struct extent *extents;
+    struct extent **extents;
     size_t length;
     int sort;
 };
