@@ -49,7 +49,7 @@ new_program_params()
     return NULL;
 
   pp->conf_file_path = strdup("/etc/lvmts/lvmtsd.conf");
-  pp->pvmove_wait = 5 * 60; // 5 minutes
+  pp->pvmove_wait = 60; // XXX 5 minutes
 
   return pp;
 }
