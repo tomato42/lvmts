@@ -186,7 +186,7 @@ main_loop(struct program_params *pp)
 
     char *lv_name = get_first_volume_name(pp);
 
-    while (stop) {
+    while (!stop) {
 
         // if move daemon is working, wait 5 minutes, start from beginning
         switch(move_daemon_status(pp, lv_name)) {
@@ -198,6 +198,7 @@ main_loop(struct program_params *pp)
             break; /* do nothing, continue */
           default:
             fprintf(stderr, "Unknown response from move_daemon_status()\n");
+            goto no_cleanup;
             break;
         }
 
