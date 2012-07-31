@@ -24,6 +24,7 @@
 #include <assert.h>
 #include "lvmls.h"
 #include "extents.h"
+#include "volumes.h"
 
 /** maximum number of storage tiers */
 #define TIER_MAX 65536
@@ -106,28 +107,15 @@ move_daemon_status(struct program_params *pp, char *lv_name)
     return PVMOVE_IDLE;
 }
 
+// TODO
 static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
     int dst_tier)
 {
-  return 0;
-}
-
-static char *
-get_first_volume_name(struct program_params *pp)
-{
-    return NULL;
-}
-
-static off_t
-get_extent_size(struct program_params *pp, char *lv_name)
-{
-    return 1;
-}
-
-static int
-get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats **es)
-{
+    for(size_t i = 0; i < ext->length; i++) {
+        printf("pvmove %s:%i %s\n", ext->extents[i].dev,
+            ext->extents[i].pe, get_tier_device(pp, dst_tier));
+    }
     return 0;
 }
 
@@ -141,24 +129,6 @@ static int
 lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {
     return 0;
-}
-
-/**
- * Select best extents that conform to provided criteria
- *
- * @var es statistics of extent to gather data from
- * @var ret[out] returned list of extents
- * @var pp general program parameters
- * @var lv_name volume name of which extents are to be selected
- * @var max_tier don't select extents from tier higher than this
- * @var max_extents don't return more than this much extents
- */
-static int
-extents_selector(struct extent_stats *es, struct extents **ret,
-    struct program_params *pp, char *lv_name, int max_tier, int max_extents,
-    int hot_cold)
-{
-    return 1;
 }
 
 static int
