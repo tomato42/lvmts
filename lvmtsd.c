@@ -142,7 +142,10 @@ add_pinning_scores(struct extent_stats *es, struct program_params *pp,
 static int
 higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
 {
-  return 0;
+    if (tier < 2)
+        return 1;
+    else
+        return 0;
 }
 
 /** controlling daemon main loop */
