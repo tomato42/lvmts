@@ -50,7 +50,7 @@ get_score_scaling_factor(struct program_params *pp, char *lv_name)
 
 // TODO
 char *
-get_tier_device(struct program_params *pp, int tier)
+get_tier_device(struct program_params *pp, char *lv_name, int tier)
 {
     static char *tiers[] = { "/dev/0",
                        "/dev/1",

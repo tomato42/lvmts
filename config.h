@@ -11,6 +11,6 @@ float get_hit_score(struct program_params *pp, char *lv_name);
 
 float get_score_scaling_factor(struct program_params *pp, char *lv_name);
 
-char *get_tier_device(struct program_params *pp, int tier);
+char *get_tier_device(struct program_params *pp, char *lv_name, int tier);
 
 #endif

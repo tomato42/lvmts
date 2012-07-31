@@ -108,14 +108,14 @@ move_daemon_status(struct program_params *pp, char *lv_name)
     return PVMOVE_IDLE;
 }
 
-// TODO
+// TODO stub
 static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
-    int dst_tier)
+    char *lv_name, int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
         printf("pvmove %s:%li %s\n", ext->extents[i]->dev,
-            ext->extents[i]->pe, get_tier_device(pp, dst_tier));
+            ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier));
     }
     return 0;
 }
@@ -231,7 +231,7 @@ main_loop(struct program_params *pp)
 
             // move them from slow storage,
             // until no space left
-            ret = queue_extents_move(ext, pp, tier);
+            ret = queue_extents_move(ext, pp, lv_name, tier);
             if (ret) {
                 fprintf(stderr, "Can't queue extents move\n");
                 goto no_cleanup;
@@ -309,12 +309,12 @@ main_loop(struct program_params *pp)
                 truncate_extents(curr_tier_min, move_extents);
 
                 // queue move of extents that remain
-                ret = queue_extents_move(prev_tier_max, pp, tier);
+                ret = queue_extents_move(prev_tier_max, pp, lv_name, tier);
                 if (ret) {
                     fprintf(stderr, "%s:%i: queue extents failed\n", __FILE__, __LINE__);
                     goto no_cleanup;
                 }
-                ret = queue_extents_move(curr_tier_min, pp, prev_tier);
+                ret = queue_extents_move(curr_tier_min, pp, lv_name, prev_tier);
                 if (ret) {
                     fprintf(stderr, "%s:%i: queue extents failed\n", __FILE__, __LINE__);
                     goto no_cleanup;
