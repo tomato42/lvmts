@@ -20,35 +20,35 @@
 #include <math.h>
 #include "config.h"
 
-// TODO
+// TODO stub
 float
 get_read_multiplier(struct program_params *pp, char *lv_name)
 {
     return 1;
 }
 
-// TODO
+// TODO stub
 float
 get_write_multiplier(struct program_params *pp, char *lv_name)
 {
     return 10;
 }
 
-// TODO
+// TODO stub
 float
 get_hit_score(struct program_params *pp, char *lv_name)
 {
     return 16;
 }
 
-// TODO
+// TODO stub
 float
 get_score_scaling_factor(struct program_params *pp, char *lv_name)
 {
     return pow(2,-15);
 }
 
-// TODO
+// TODO stub
 char *
 get_tier_device(struct program_params *pp, char *lv_name, int tier)
 {
