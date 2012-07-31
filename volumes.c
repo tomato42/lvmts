@@ -61,7 +61,7 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
         int tier = get_extent_tier(pp, lv_name, &es->extents[i]);
 
         if ((hot_cold == ES_HOT && max_tier > tier) || max_tier < tier) {
-            (*ret)->extents[(*ret)->length] = &ex->extents[i];
+            (*ret)->extents[(*ret)->length] = &es->extents[i];
             (*ret)->length++;
         }
     }
