@@ -13,4 +13,10 @@ float get_score_scaling_factor(struct program_params *pp, char *lv_name);
 
 char *get_tier_device(struct program_params *pp, char *lv_name, int tier);
 
+/**
+ * Returns pinning score for provided volume
+ */
+float get_tier_pinning_score(struct program_params *pp, char *lv_name,
+    int tier);
+
 #endif

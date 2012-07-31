@@ -60,3 +60,10 @@ get_tier_device(struct program_params *pp, char *lv_name, int tier)
 
     return tiers[tier];
 }
+
+// TODO stub
+float get_tier_pinning_score(struct program_params *pp, char *lv_name,
+    int tier)
+{
+    return 20-tier*10;
+}
