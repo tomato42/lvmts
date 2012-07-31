@@ -379,7 +379,7 @@ void le_to_pe_exit()
 void init_le_to_pe()
 {
     void *handle;
-    int r;
+//    int r;
 
     if(pv_segments)
         le_to_pe_exit();
@@ -392,7 +392,8 @@ void init_le_to_pe()
     handle = lvm2_init();
 
     lvm2_log_level(handle, 1);
-    r = lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
+//    r =
+      lvm2_run(handle, "pvs --noheadings --segments -o+lv_name,"
         "seg_start_pe,segtype --units=b");
 
 //    if (r)
@@ -402,7 +403,8 @@ void init_le_to_pe()
 
     lvm2_log_fn(parse_vgs_pe_size);
 
-    r = lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings --units=b");
+//    r =
+      lvm2_run(handle, "vgs -o vg_name,vg_extent_size --noheadings --units=b");
 
     lvm2_exit(handle);
 

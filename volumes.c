@@ -58,13 +58,13 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
 
     struct activity_stats *as;
 
-    static char *hack = "dane-stacja.lvmts";
+    static char *hack = "dane-stacja.lvmts"; // XXX get from params
 
-    ret = read_activity_stats(&as, hack); // XXX get from params
+    ret = read_activity_stats(&as, hack);
     assert(ret);
 
     (*es)->extents = malloc(sizeof(struct extent) * as->len);
-    assert((*es)->extents); // XXX
+    assert((*es)->extents); // XXX better error checking
     (*es)->length = as->len;
 
     init_le_to_pe();
@@ -85,9 +85,11 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
         e->dev = strdup(pv_i->pv_name);
         e->le = i;
         e->pe = pv_i->start_seg;
-        e->read_score = get_block_activity_raw_score(ba, T_READ, hit_score, scale);
+        e->read_score =
+            get_block_activity_raw_score(ba, T_READ, hit_score, scale);
         e->last_read_access = get_last_read_time(ba);
-        e->write_score = get_block_activity_raw_score(ba, T_WRITE, hit_score, scale);
+        e->write_score =
+            get_block_activity_raw_score(ba, T_WRITE, hit_score, scale);
         e->last_write_access = get_last_write_time(ba);
 
         e->score = calculate_score( e->read_score,

@@ -25,6 +25,7 @@
 #include "lvmls.h"
 #include "extents.h"
 #include "volumes.h"
+#include "config.h"
 
 /** maximum number of storage tiers */
 #define TIER_MAX 65536
@@ -113,7 +114,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
-        printf("pvmove %s:%i %s\n", ext->extents[i].dev,
+        printf("pvmove %s:%li %s\n", ext->extents[i].dev,
             ext->extents[i].pe, get_tier_device(pp, dst_tier));
     }
     return 0;
