@@ -195,7 +195,7 @@ main_loop(struct program_params *pp)
             continue;
             break;
           case PVMOVE_IDLE:
-            break; /* do nothing */
+            break; /* do nothing, continue */
           default:
             fprintf(stderr, "Unknown response from move_daemon_status()\n");
             break;
@@ -388,6 +388,7 @@ main(int argc, char **argv)
 
     ret = parse_arguments(argc, argv, pp);
     if (ret) {
+        fprintf(stderr, "Can't parse arguments\n");
         f_ret = EXIT_FAILURE;
         goto program_params_cleanup;
     }
@@ -395,6 +396,7 @@ main(int argc, char **argv)
     // read config file
     ret = read_config(pp);
     if (ret) {
+        fprintf(stderr, "can't read config file\n");
         f_ret = EXIT_FAILURE;
         goto program_params_cleanup;
     }
@@ -404,6 +406,7 @@ main(int argc, char **argv)
     // make sure collector daemon works
     ret = run_collector_daemon(pp);
     if (ret) {
+        fprintf(stderr, "can't run collector daemon\n");
         f_ret = EXIT_FAILURE;
         goto program_params_cleanup;
     }
@@ -412,12 +415,15 @@ main(int argc, char **argv)
 
     // check how fresh are collected stats
     while(stats_available(pp)) {
+        printf("Waiting for statistics to become avaiable\n");
         sleep(5*60); // 5 minutes
     }
 
     // start main loop
-    if(main_loop(pp))
-      f_ret = EXIT_FAILURE;
+    if(main_loop(pp)) {
+        fprintf(stderr, "Error in main loop\n");
+        f_ret = EXIT_FAILURE;
+    }
 
 program_params_cleanup:
     free_program_params(pp);
