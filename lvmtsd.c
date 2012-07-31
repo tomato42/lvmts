@@ -144,7 +144,11 @@ static int
 add_pinning_scores(struct extent_stats *es, struct program_params *pp,
     char *lv_name)
 {
-  return 0;
+    for(size_t i=0; i < es->length; i++) {
+        int tier = get_extent_tier(pp, lv_name, &es->extents[i]);
+        es->extents[i].score += get_tier_pinning_score(pp, lv_name, tier);
+    }
+    return 0;
 }
 
 static int
