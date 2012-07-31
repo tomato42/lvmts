@@ -123,6 +123,9 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
 static off_t
 get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
 {
+    if (tier <= 2)
+        return 4 * 1024 * 1024 * 200;
+
     return 0;
 }
 
