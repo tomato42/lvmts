@@ -100,9 +100,6 @@ add_block_activity_write(struct block_activity *block, int64_t time, int granula
 	block->writes[0].hits = 1;
 }
 
-#define T_READ 1
-#define T_WRITE 2
-
 int
 add_block(struct activity_stats *activity, int64_t off, int64_t time,
 		int granularity, int type) {

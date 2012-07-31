@@ -25,6 +25,9 @@
 #define TIME_MAX ((1<<51)-1)
 #define HITS_MAX ((1<<11)-1)
 
+#define T_READ 1
+#define T_WRITE 2
+
 struct rw_activity {
 	uint64_t time:52;
 	uint64_t hits:12;
@@ -113,5 +116,11 @@ float calculate_score(  float read_score,
                         float write_multiplier,
                         time_t curr_time,
                         float exp);
+
+/**
+ * Return raw read and write scores for single block
+ */
+float get_block_activity_raw_score(struct block_activity *block, int type,
+    float hit_score, float scale);
 
 #endif
