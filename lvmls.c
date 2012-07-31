@@ -64,6 +64,32 @@ _compare_segments(const void *a, const void *b)
         return 1;
 }
 
+static int
+_find_segment(const void *key, const void *b)
+{
+    struct pv_allocations *alloc_a, *alloc_b;
+    int r;
+
+    alloc_a = (struct pv_allocations *)key;
+    alloc_b = (struct pv_allocations *)b;
+
+    r = strcmp(alloc_a->vg_name, alloc_b->vg_name);
+    if(r != 0)
+        return r;
+
+    r = strcmp(alloc_a->lv_name, alloc_b->lv_name);
+    if(r != 0)
+        return r;
+
+    if (alloc_a->lv_start >= alloc_b->lv_start
+        && alloc_a->lv_start < alloc_b->lv_start + alloc_b->pv_length)
+        return 0;
+    else if (alloc_a->lv_start > alloc_b->lv_start)
+        return -1;
+    else
+        return 1;
+}
+
 void sort_segments(struct pv_allocations *segments, size_t nmemb)
 {
     qsort(segments, nmemb, sizeof(struct pv_allocations), _compare_segments);
@@ -187,35 +213,36 @@ parse_error:
 // on specific device
 struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
 {
-    for(size_t i=0; i < pv_segments_num; i++) { // TODO use binary search
-        if(!strcmp(pv_segments[i].vg_name, vg_name) &&
-            !strcmp(pv_segments[i].lv_name, lv_name)) {
+    struct pv_allocations pv_alloc = { .lv_name = lv_name,
+                                       .vg_name = vg_name,
+                                       .lv_start = le_num };
 
-            if (le_num >= pv_segments[i].lv_start &&
-                le_num < pv_segments[i].lv_start+pv_segments[i].pv_length) {
+    struct pv_allocations *needle;
 
-                struct pv_info *pv_info;
+    needle = bsearch(&pv_alloc, pv_segments, pv_segments_num,
+                sizeof(struct pv_allocations), _find_segment);
 
-                pv_info = malloc(sizeof(struct pv_info));
-                if (!pv_info) {
-                    fprintf(stderr, "Out of memory\n");
-                    exit(1);
-                }
+    if (!needle)
+        return NULL;
 
-                pv_info->pv_name = strdup(pv_segments[i].pv_name);
-                if (!pv_info->pv_name) {
-                    fprintf(stderr, "Out of memory\n");
-                    exit(1);
-                }
+    struct pv_info *pv_info;
 
-                pv_info->start_seg = pv_segments[i].pv_start +
-                  (le_num - pv_segments[i].lv_start);
-
-                return pv_info;
-            }
-        }
+    pv_info = malloc(sizeof(struct pv_info));
+    if (!pv_info) {
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
     }
-    return NULL;
+
+    pv_info->pv_name = strdup(needle->pv_name);
+    if (!pv_info->pv_name) {
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
+    }
+
+    pv_info->start_seg = needle->pv_start +
+      (le_num - needle->lv_start);
+
+    return pv_info;
 }
 
 struct vg_pe_sizes {
