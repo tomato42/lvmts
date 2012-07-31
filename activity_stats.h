@@ -76,4 +76,42 @@ int get_best_blocks_with_max_score(struct activity_stats *activity,
 		struct block_scores **bs, size_t size, int read_multiplier,
 		int write_multiplier, float max_score);
 
+/**
+ * returns reference to activity stats from single block
+ */
+struct block_activity* get_block_activity(struct activity_stats *activity,
+        off_t off);
+
+/**
+ * return raw read score, not adjusted for current time
+ */
+float get_raw_block_read_score(struct block_activity *ba);
+
+/**
+ * return time of last read access to block
+ */
+time_t get_last_read_time(struct block_activity *ba);
+
+/**
+ * return raw write score, not adjusted for current time
+ */
+float get_raw_block_write_score(struct block_activity *ba);
+
+/**
+ * return time of last write access to block
+ */
+time_t get_last_write_time(struct block_activity *ba);
+
+/**
+ * calculate block score at provided time
+ */
+float calculate_score(  float read_score,
+                        time_t read_time,
+                        float read_multiplier,
+                        float write_score,
+                        time_t write_time,
+                        float write_multiplier,
+                        time_t curr_time,
+                        float exp);
+
 #endif

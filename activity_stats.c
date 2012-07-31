@@ -163,6 +163,138 @@ add_block_write(struct activity_stats *activity, int64_t off, int64_t time, int 
 
 #define HIT_SCORE 16.0L
 #define SCALE (pow(2,-15))
+
+struct block_activity*
+get_block_activity(struct activity_stats *activity, off_t off)
+{
+    return &activity->block[off];
+}
+
+// return last access time, either read or write
+time_t
+get_last_access_time(struct block_activity *ba, int type)
+{
+    time_t last_access = 0;
+
+    int i;
+    for(i=0; i<HISTORY_LEN; i++) {
+        if ((type == T_READ && ba->reads[i].hits == 0)
+            || (type == T_WRITE && ba->writes[i].hits == 0))
+          break;
+
+        if (type == T_READ)
+            last_access = ba->reads[i].time;
+        else
+            last_access = ba->writes[i].time;
+    }
+
+    return last_access;
+}
+
+time_t
+get_last_read_time(struct block_activity *ba)
+{
+    return get_last_access_time(ba, T_READ);
+}
+
+time_t
+get_last_write_time(struct block_activity *ba)
+{
+    return get_last_access_time(ba, T_WRITE);
+}
+
+float
+get_block_activity_raw_score(struct block_activity *block, int type,
+    float hit_score, float scale)
+{
+    double score = 0.0;
+	time_t last_access = 0;
+	int len = 0;
+	int i;
+	for(i=0; i<HISTORY_LEN; len=i, i++)
+		if ((type == T_READ && block->reads[i].hits == 0)
+		   || (type == T_WRITE && block->writes[i].hits == 0))
+			break;
+
+	if (type == T_READ) {
+		last_access = block->reads[len].time;
+		score = block->reads[len].hits * hit_score;
+	} else if (type == T_WRITE) {
+		last_access = block->writes[len].time;
+		score = block->writes[len].hits * hit_score;
+	} else {
+		assert(1);
+	}
+
+    if (!len)
+        return score;
+
+    if (!last_access) {
+        fprintf(stderr, "last_access == 0, score: %f, len: %i\n", score, len);
+        for (int i=len; i>=0; i--) {
+            if (type == T_READ)
+                fprintf(stderr, "%i, %i, %i\n", i, block->reads[i].hits, block->reads[i].time);
+            else
+                fprintf(stderr, "%i, %i, %i\n", i, block->writes[i].hits, block->writes[i].time);
+        }
+    }
+
+    assert(last_access);
+
+	time_t time_diff;
+	for(int i=len-1; i>=0; i--) {
+        // calculate how much time passed since previous access
+		if (type == T_READ) {
+			time_diff = block->reads[i].time - last_access;
+			last_access = block->reads[i].time;
+		} else if (type == T_WRITE) {
+			time_diff = block->writes[i].time - last_access;
+			last_access = block->writes[i].time;
+		} else
+			assert(1);
+
+        // "age" past score
+		score *= exp(-1.0 * scale * time_diff);
+
+        // add current score
+		if (type == T_READ) {
+			score += block->reads[i].hits * hit_score;
+		} else if (type == T_WRITE) {
+			score += block->writes[i].hits * hit_score;
+		} else
+			assert (1);
+	}
+
+    return score;
+}
+
+float
+calculate_score(float read_score,
+                time_t read_time,
+                float read_multiplier,
+                float write_score,
+                time_t write_time,
+                float write_multiplier,
+                time_t curr_time,
+                float scale)
+{
+    float score;
+
+    time_t read_diff = curr_time - read_time;
+    time_t write_diff = curr_time - write_time;
+
+    float curr_read_score;
+    float curr_write_score;
+
+    curr_read_score = exp(-1.0 * scale * read_diff) * read_score;
+    curr_write_score = exp(-1.0 * scale * write_diff) * write_score;
+
+    score = curr_read_score * read_multiplier
+      + curr_write_score * write_multiplier;
+
+    return score;
+}
+
 float
 get_block_score(struct activity_stats *activity, int64_t off, int type) {
 
@@ -224,6 +356,18 @@ float
 get_block_read_score(struct activity_stats *activity, int64_t off) {
 
 	return get_block_score(activity, off, T_READ);
+}
+
+float
+get_raw_block_read_score(struct block_activity *ba)
+{
+    return get_block_activity_raw_score(ba, T_READ, HIT_SCORE, SCALE);
+}
+
+float
+get_raw_block_write_score(struct block_activity *ba)
+{
+    return get_block_activity_raw_score(ba, T_WRITE, HIT_SCORE, SCALE);
 }
 
 void

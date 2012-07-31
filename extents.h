@@ -7,6 +7,9 @@
 
 /** extent statistics */
 struct extent_stats {
+    struct extent *extents;
+    size_t length;
+    char *lv_name;
 };
 
 /** single extent data */
