@@ -19,11 +19,12 @@ char *get_first_volume_name(struct program_params *pp);
 /**
  * Select best extents that conform to provided criteria
  *
- * @var es statistics of extent to gather data from
+ * @var es statistics of extent to get data from
  * @var ret[out] returned list of extents
  * @var pp general program parameters
  * @var lv_name volume name of which extents are to be selected
- * @var max_tier don't select extents from tier higher than this
+ * @var max_tier don't select extents from tier higher than this (or lower
+ *      in case of hot_cold == ES_COLD)
  * @var max_extents don't return more than this much extents
  * @var hot_cold return hottest (ES_HOT) or coldest extents (ES_COLD)
  */

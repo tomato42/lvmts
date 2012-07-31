@@ -42,7 +42,31 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
     struct program_params *pp, char *lv_name, int max_tier, int max_extents,
     int hot_cold)
 {
-    return 1;
+    assert(ret);
+    assert(hot_cold == ES_HOT || hot_cold == ES_COLD);
+
+    *ret = malloc(sizeof(struct extents));
+
+    (*ret)->length = 0;
+    (*ret)->sort = hot_cold;
+
+    (*ret)->extents = malloc(sizeof(struct extent*) * max_extents);
+    assert((*ret)->extents); // TODO error handling
+
+    for(ssize_t i=(hot_cold == ES_HOT)?0:es->length-1;
+        (hot_cold == ES_HOT && i < es->length && (*ret)->length < max_extents)
+            || (i >= 0 && (*ret)->length < max_extents);
+        i = (hot_cold == ES_HOT)?i+1:i-1) {
+
+        int tier = get_extent_tier(pp, lv_name, &es->extents[i]);
+
+        if ((hot_cold == ES_HOT && max_tier > tier) || max_tier < tier) {
+            (*ret)->extents[(*ret)->length] = &ex->extents[i];
+            (*ret)->length++;
+        }
+    }
+
+    return 0;
 }
 
 static int
@@ -132,5 +156,6 @@ get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats *
 
     qsort((*es)->extents, (*es)->length, sizeof(struct extent),
         extent_compare);
+
     return f_ret;
 }
