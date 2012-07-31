@@ -128,9 +128,9 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     char *lv_name, int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
-        printf("pvmove --alloc anywhere %s:%li %s # score: %f\n", ext->extents[i]->dev,
+        printf("pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
             ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
-            ext->extents[i]->score);
+            ext->extents[i]->le, ext->extents[i]->score);
     }
     return 0;
 }
@@ -253,6 +253,8 @@ main_loop(struct program_params *pp)
                 free_extents(ext);
                 continue;
             }
+
+            printf("Moving extents to higher tier\n");
 
             // move them from slow storage,
             // until no space left
