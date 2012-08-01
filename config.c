@@ -206,7 +206,71 @@ parse_time_value(cfg_t *cfg, cfg_opt_t *opt, const char *value, void *result)
 // as, respectively: 4, 1024, 4194304 and 11811160064
 static int
 parse_size_value(cfg_t *cfg, cfg_opt_t *opt, const char *value, void *result)
-{ // TODO
+{
+    long int res;
+    char *endptr;
+
+    res = strtol(value, &endptr, 10);
+
+    // check for simple errors while parsing number
+    if (endptr == value) {
+        cfg_error(cfg, "Invalid value for option %s: value can't be parsed "
+            "as a number.", opt->name);
+        return -1;
+    }
+    if (res == LONG_MAX) {
+        cfg_error(cfg, "Value too large for option %s.", opt->name);
+        return -1;
+    }
+    if (res < 0) {
+        cfg_error(cfg, "Value can't be negative for option %s.", opt->name);
+        return -1;
+    }
+    if (res == 0) {
+        cfg_error(cfg, "Value can't be zero for option %s.", opt->name);
+        return -1;
+    }
+
+    switch(*endptr) {
+        case '\0':
+        case 'b':
+        case 'B':
+          /* do nothing */
+          break;
+        case 's':
+        case 'S':
+          res *= 512;
+          break;
+        case 'k':
+        case 'K':
+          res *= 1024L;
+          break;
+        case 'm':
+        case 'M':
+          res *= 1024L * 1024L;
+          break;
+        case 'g':
+        case 'G':
+          res *= 1024L * 1024L * 1024L;
+          break;
+        case 't':
+        case 'T':
+          res *= 1024L * 1024L * 1024L * 1024L;
+          break;
+        default:
+          cfg_error(cfg, "Unrecognized trailing characters for option %s: %s",
+              opt->name, endptr);
+          return -1;
+    }
+    if (*endptr && *(endptr+1)) {
+        cfg_error(cfg, "Trailing characters in option %s: %s", opt->name, endptr);
+        return -1;
+    }
+
+    *(long int*)result = res;
+
+    fprintf(stderr, "%s: %li\n", opt->name, res);
+
     return 0;
 }
 
