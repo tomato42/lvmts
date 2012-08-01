@@ -1,7 +1,7 @@
 CC=gcc
 #CFLAGS=-std=gnu99 -Wall -pthread -ggdb -lm -Os
-CFLAGS=-std=gnu99 -Wall -pthread -ggdb3 -lm
-LFLAGS=-llvm2cmd -pthread
+CFLAGS=-std=gnu99 -Wall -pthread -ggdb3 -lm -O1
+LFLAGS=-llvm2cmd -pthread -lconfuse
 
 all: lvmtscd lvmtscat lvmls lvmtsd
 

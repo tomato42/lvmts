@@ -23,4 +23,8 @@ char *get_tier_device(struct program_params *pp, char *lv_name, int tier);
 float get_tier_pinning_score(struct program_params *pp, char *lv_name,
     int tier);
 
+/**
+ * read configuration file
+ */
+int read_config(struct program_params *pp);
 #endif

@@ -75,15 +75,6 @@ parse_arguments(int argc, char **argv, struct program_params *pp)
   return 0;
 }
 
-/** read configuration file
- * TODO
- */
-static int
-read_config(struct program_params *pp)
-{
-  return 0;
-}
-
 /** starts collector deamon processes
  * TODO
  */
