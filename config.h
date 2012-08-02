@@ -5,7 +5,6 @@
 
 struct program_params {
     char *conf_file_path;
-    int pvmove_wait;
     void *lvm2_handle;
     cfg_t *cfg;
 };

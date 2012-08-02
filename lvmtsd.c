@@ -46,7 +46,6 @@ new_program_params()
     return NULL;
 
   pp->conf_file_path = strdup("doc/sample.conf");
-  pp->pvmove_wait = 60; // XXX 5 minutes
 
   pp->cfg = NULL;
 
@@ -174,6 +173,12 @@ higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
         return 0;
 }
 
+static int
+get_pvwait(struct program_params *pp, const char *lv_name)
+{
+    return cfg_getint(cfg_gettsec(pp->cfg, "volume", lv_name), "pvmoveWait");
+}
+
 /** controlling daemon main loop */
 static int
 main_loop(struct program_params *pp)
@@ -187,7 +192,7 @@ main_loop(struct program_params *pp)
         // if move daemon is working, wait 5 minutes, start from beginning
         switch(move_daemon_status(pp, lv_name)) {
           case PVMOVE_WORKING:
-            sleep(pp->pvmove_wait);
+            sleep(get_pvwait(pp, lv_name));
             continue;
             break;
           case PVMOVE_IDLE:
@@ -261,7 +266,7 @@ main_loop(struct program_params *pp)
             free_extents(ext);
 
             if (!stop)
-                sleep(pp->pvmove_wait);
+                sleep(get_pvwait(pp, lv_name));
 
             // continue main loop, free memory before
             goto cont;
