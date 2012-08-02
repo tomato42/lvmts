@@ -22,7 +22,7 @@
 
 void init_le_to_pe(struct program_params *pp);
 
-void le_to_pe_exit(void);
+void le_to_pe_exit(struct program_params *pp);
 
 struct pv_info {
     char *pv_name;

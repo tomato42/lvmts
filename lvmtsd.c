@@ -67,6 +67,8 @@ free_program_params(struct program_params *pp)
     if (pp->lvm2_handle)
         lvm2_exit(pp->lvm2_handle);
 
+    le_to_pe_exit(pp);
+
     free(pp);
 }
 
@@ -201,7 +203,8 @@ main_loop(struct program_params *pp)
 
             // always leave 5 extents worth of free space so that we always
             // can move cold extents from higher tier
-            off_t available_extents = free_space / get_extent_size(pp, lv_name) - 5;
+            off_t available_extents = free_space
+                / get_extent_size(pp, lv_name) - 5;
             if (available_extents < 0)
               available_extents = 0;
 

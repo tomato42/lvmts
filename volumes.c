@@ -174,7 +174,6 @@ get_volume_stats(struct program_params *pp, const char *lv_name, struct extent_s
     }
 
     // clean up
-    le_to_pe_exit();
     destroy_activity_stats(as);
 
     // sort according to score

@@ -239,7 +239,7 @@ main(int argc, char **argv)
 	as = NULL;
 
     if (!print_le) {
-        le_to_pe_exit();
+        le_to_pe_exit(&pp);
     }
 
 	return ret;

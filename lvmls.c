@@ -36,6 +36,7 @@ struct pv_allocations {
     uint64_t lv_start; // starting extent of this segment in LV
 };
 
+// TODO move to program_params
 struct pv_allocations *pv_segments=NULL;
 size_t pv_segments_num=0;
 
@@ -381,7 +382,7 @@ uint64_t get_pe_size(const char *vg_name)
 }
 
 // free allocated memory and objects
-void le_to_pe_exit()
+void le_to_pe_exit(struct program_params *pp)
 {
     for(size_t i=0; i<pv_segments_num; i++){
         free(pv_segments[i].pv_name);
@@ -409,7 +410,7 @@ void init_le_to_pe(struct program_params *pp)
 //    int r;
 
     if(pv_segments)
-        le_to_pe_exit();
+        le_to_pe_exit(pp);
 
     vg_pe_sizes = NULL;
     vg_pe_sizes_len = 0;
@@ -502,7 +503,7 @@ int main(int argc, char **argv)
     if (argc != 4) {
         printf("Usage: %s VolumeGroupName LogicalVolumeName"
             " LogicalVolumeExtent\n", argv[0]);
-        le_to_pe_exit();
+        le_to_pe_exit(&pp);
         return 1;
     }
 
@@ -543,7 +544,7 @@ int main(int argc, char **argv)
 
     pv_info_free(pv_info);
 
-    le_to_pe_exit();
+    le_to_pe_exit(&pp);
 
     lvm2_exit(pp.lvm2_handle);
 
