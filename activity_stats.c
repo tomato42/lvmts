@@ -573,6 +573,8 @@ file_cleanup:
 	return ret;
 }
 
+// TODO optimise file format so that reading it under valgrind doesn't take
+// half a minute
 int
 read_activity_stats(struct activity_stats **activity, char *file) {
 	assert(activity);
