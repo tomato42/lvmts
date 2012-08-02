@@ -528,7 +528,17 @@ int main(int argc, char **argv)
     long int free_extents = get_free_extent_number(argv[1], pv_info->pv_name);
     printf("vg: %s, pv: %s, free space: %lue (%luB)\n", argv[1],
         pv_info->pv_name,
-        free_extents, free_extents * get_pe_size(argv[1]));
+        free_extents,
+        free_extents * get_pe_size(argv[1]));
+
+    long int used_extents = get_used_space_on_pv(argv[1], argv[2],
+        pv_info->pv_name);
+    printf("Space used by lv %s on pv %s: %lue (%luB)\n",
+        argv[2],
+        pv_info->pv_name,
+        used_extents,
+        used_extents * get_pe_size(argv[1]));
+
 
     pv_info_free(pv_info);
 
