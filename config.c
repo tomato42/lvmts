@@ -53,6 +53,43 @@ get_score_scaling_factor(struct program_params *pp, const char *lv_name)
                          "timeExponent");
 }
 
+const char *
+get_volume_lv(struct program_params *pp, const char *lv_name)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    return cfg_getstr(tmp, "LogicalVolume");
+}
+
+const char *
+get_volume_vg(struct program_params *pp, const char *lv_name)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    return cfg_getstr(tmp, "VolumeGroup");
+}
+
+long int
+get_max_space_tier(struct program_params *pp, const char *lv_name,
+    int tier)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    cfg_t *pv_cfg;
+
+    for(size_t i=0; i < cfg_size(tmp, "pv"); i++) {
+        pv_cfg = cfg_getnsec(tmp, "pv", i);
+        if (cfg_getint(pv_cfg, "tier") == tier) {
+            return cfg_getint(pv_cfg, "maxUsedSpace");
+        }
+    }
+
+    return -1;
+}
+
 int
 lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
 {

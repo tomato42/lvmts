@@ -46,7 +46,18 @@ int lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier);
 int higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier);
 
 /**
+ * Return max used space on tier by volume
+ */
+long int get_max_space_tier(struct program_params *pp, const char *lv_name,
+    int tier);
+
+/**
  * read configuration file
  */
 int read_config(struct program_params *pp);
+
+const char *get_volume_lv(struct program_params *pp, const char *lv_name);
+
+const char *get_volume_vg(struct program_params *pp, const char *lv_name);
+
 #endif

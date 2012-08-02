@@ -78,4 +78,12 @@ void truncate_extents(struct extents *e, size_t len);
 int get_extent_tier(struct program_params *pp, const char *lv_name,
     struct extent *e);
 
+/**
+ * Returns amount of free space left that we can use on provided tier
+ *
+ * Space left is equal to maxUsedSpace - already used space
+ */
+off_t get_avaiable_space(struct program_params *pp, const char *lv_name,
+    int tier);
+
 #endif

@@ -17,6 +17,7 @@
  */
 #include <stdlib.h>
 #include <assert.h>
+#include "lvmls.h"
 #include "extents.h"
 #include "config.h"
 
@@ -138,4 +139,29 @@ get_extent_tier(struct program_params *pp, const char *lv_name,
     struct extent *e)
 {
     return get_device_tier(pp, lv_name, e->dev);
+}
+
+off_t
+get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
+{
+
+    const char *pv_name = get_tier_device(pp, lv_name, tier);
+    assert(pv_name);
+
+    off_t avaiable_space = get_max_space_tier(pp, lv_name, tier);
+
+    if (avaiable_space <= 0)
+      return avaiable_space;
+
+    long int used_space = get_used_space_on_pv(
+        get_volume_lv(pp, lv_name),
+        get_volume_vg(pp, lv_name),
+        pv_name);
+
+    used_space *= get_pe_size(get_volume_vg(pp, lv_name));
+
+    if (used_space > avaiable_space)
+        return 0;
+
+    return avaiable_space - used_space;
 }

@@ -36,17 +36,18 @@ void pv_info_free(struct pv_info *pv);
 // on specific device
 struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num);
 
-uint64_t get_pe_size(char *vg_name);
+uint64_t get_pe_size(const char *vg_name);
 
 /**
  * Returns amount of free extents on pv in vg
  */
-uint64_t get_free_extent_number(char *vg_name, char *pv_name);
+uint64_t get_free_extent_number(const char *vg_name, const char *pv_name);
 
 /**
  * Returns number of extents used by lv on specified pv in vg
  */
-uint64_t get_used_space_on_pv(char *vg_name, char *lv_name, char *pv_name);
+uint64_t get_used_space_on_pv(const char *vg_name, const char *lv_name,
+    const char *pv_name);
 
 #endif /* ifndef _lvmls_h */
 

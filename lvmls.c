@@ -371,7 +371,7 @@ vgs_failure:
 }
 
 // return size of extents in provided volume group
-uint64_t get_pe_size(char *vg_name)
+uint64_t get_pe_size(const char *vg_name)
 {
     for(size_t i=0; i<vg_pe_sizes_len; i++)
         if (!strcmp(vg_pe_sizes[i].vg_name, vg_name))
@@ -439,7 +439,7 @@ void init_le_to_pe(struct program_params *pp)
 
 // return number of free extents in PV in specified volume group
 // or in whole volume group if pv_name is NULL
-uint64_t get_free_extent_number(char *vg_name, char *pv_name)
+uint64_t get_free_extent_number(const char *vg_name, const char *pv_name)
 {
     if (!vg_name)
         return 0;
@@ -463,7 +463,8 @@ uint64_t get_free_extent_number(char *vg_name, char *pv_name)
 }
 
 // return used number of extents by LV on provided PV
-uint64_t get_used_space_on_pv(char *vg_name, char *lv_name, char *pv_name)
+uint64_t get_used_space_on_pv(const char *vg_name, const char *lv_name,
+    const char *pv_name)
 {
     assert(vg_name);
     assert(lv_name);
