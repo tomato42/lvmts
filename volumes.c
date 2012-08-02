@@ -49,12 +49,11 @@ int extents_selector(struct extent_stats *es, struct extents **ret,
     assert(ret);
     assert(hot_cold == ES_HOT || hot_cold == ES_COLD);
 
+    // allocate memory for `max_extent` entires
     *ret = malloc(sizeof(struct extents));
-
+    assert(*ret);
     (*ret)->length = 0;
     (*ret)->sort = hot_cold;
-
-    // assume we will find `max_extent` extents
     (*ret)->extents = malloc(sizeof(struct extent*) * max_extents);
     assert((*ret)->extents); // TODO error handling
 
