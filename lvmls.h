@@ -34,7 +34,7 @@ void pv_info_free(struct pv_info *pv);
 // convert logical extent from logical volume specified by lv_name,
 // vg_name and logical extent number (le_num) to physical extent
 // on specific device
-struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num);
+struct pv_info *LE_to_PE(const char *vg_name, const char *lv_name, uint64_t le_num);
 
 uint64_t get_pe_size(const char *vg_name);
 

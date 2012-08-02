@@ -136,7 +136,9 @@ get_volume_stats(struct program_params *pp, const char *lv_name, struct extent_s
 
         // get logical extent to physical extent mapping for extent
         struct pv_info *pv_i;
-        pv_i = LE_to_PE("stacja", "dane", i); // XXX get from params/config
+        pv_i = LE_to_PE(get_volume_vg(pp, lv_name),
+                        get_volume_lv(pp, lv_name),
+                        i);
         if (!pv_i) {
             fprintf(stderr, "error when translating extent %li\n", i);
             fprintf(stderr, "Do you have permission to access lvm device?\n");

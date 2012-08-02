@@ -212,10 +212,10 @@ parse_error:
 // convert logical extent from logical volume specified by lv_name,
 // vg_name and logical extent number (le_num) to physical extent
 // on specific device
-struct pv_info *LE_to_PE(char *vg_name, char *lv_name, uint64_t le_num)
+struct pv_info *LE_to_PE(const char *vg_name, const char *lv_name, uint64_t le_num)
 {
-    struct pv_allocations pv_alloc = { .lv_name = lv_name,
-                                       .vg_name = vg_name,
+    struct pv_allocations pv_alloc = { .lv_name = (char *)lv_name,
+                                       .vg_name = (char *)vg_name,
                                        .lv_start = le_num };
 
     struct pv_allocations *needle;
