@@ -473,10 +473,8 @@ pv_info_free(struct pv_info *pv)
 int main(int argc, char **argv)
 {
     struct program_params pp = { .lvm2_handle = NULL };
-    printf("pre init\n");
-    init_le_to_pe(&pp);
-    printf("%s:%i\n", __FILE__, __LINE__);
 
+    init_le_to_pe(&pp);
 
     if (argc != 4) {
         printf("Usage: %s VolumeGroupName LogicalVolumeName"
@@ -503,9 +501,14 @@ int main(int argc, char **argv)
     else
         printf("no LE found\n");
 
-    pv_info_free(pv_info);
-
     printf("vg: %s, extent size: %lu bytes\n", argv[1], get_pe_size(argv[1]));
+
+    long int free_extents = get_free_extent_number(argv[1], pv_info->pv_name);
+    printf("vg: %s, pv: %s, free space: %lue (%luB)\n", argv[1],
+        pv_info->pv_name,
+        free_extents, free_extents * get_pe_size(argv[1]));
+
+    pv_info_free(pv_info);
 
     le_to_pe_exit();
 
