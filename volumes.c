@@ -33,10 +33,12 @@ get_extent_size(struct program_params *pp, char *lv_name)
 }
 
 // TODO stub
-char *
+const char *
 get_first_volume_name(struct program_params *pp)
 {
-    return "stacja-dane";
+    cfg_t *tmp;
+    tmp = cfg_getnsec(pp->cfg, "volume", 0);
+    return cfg_title(tmp);
 }
 
 // selects best or worst extents in collection not residing on specific devices

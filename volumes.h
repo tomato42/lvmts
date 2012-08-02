@@ -14,7 +14,7 @@ off_t get_extent_size(struct program_params *pp, char *lv_name);
 /**
  * Return volume name of first defined logical volume in config file
  */
-char *get_first_volume_name(struct program_params *pp);
+const char *get_first_volume_name(struct program_params *pp);
 
 /**
  * Select best extents that conform to provided criteria
