@@ -27,3 +27,29 @@ To get 25 most active physical extents formatted as a parameter to pvmove, use f
 command:
 
 ./lvmtscat -b 25 --pvmove --VG VolumeGroupName --LV LogicalVolumeName lvm-volume.lvmts
+
+Using lvmtsd
+============
+
+While collecting stats and using lvmtscat for looking at most active blocks
+gives much information, it doesn't do anything.
+
+(it's a hack now, it will be made more user-friendly later)
+
+First, edit doc/sample.conf file, the title of the volume section should have
+the same name as file created by lvmtscd, sans .lvmts extension, rest of the
+options is explained there.
+
+Currently only one volume is supported, additional "volume" sections will be
+ignored.
+
+First, run lvmtscd in the same dir as is doc/. Wait for it to write some
+statistics (if your system isn't active, wait at least half an hour, with
+busy system, 10min should suffice). If the file has gotten big, just run
+
+./lvmtsd
+
+It will move most active extents to fastest storage and then keep it updated
+according to rules in sample.conf
+
+Now you may enjoy your hybrid storage!
