@@ -151,8 +151,12 @@ get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
 
     off_t avaiable_space = get_max_space_tier(pp, lv_name, tier);
 
-    if (avaiable_space <= 0)
-      return avaiable_space;
+    if (avaiable_space == 0)
+        return avaiable_space;
+
+    if (avaiable_space < 0)
+        return get_free_extent_number(get_volume_vg(pp, lv_name), pv_name)
+          * get_pe_size(get_volume_vg(pp, lv_name));
 
     long int used_space = get_used_space_on_pv(
         get_volume_vg(pp, lv_name),

@@ -444,7 +444,7 @@ read_config(struct program_params *pp)
         CFG_INT("tier", 0, CFGF_NONE),
         CFG_FLOAT("pinningScore", 0, CFGF_NONE),
         CFG_STR("path", NULL, CFGF_NONE),
-        CFG_INT_CB("maxUsedSpace", 0, CFGF_NONE, parse_size_value),
+        CFG_INT_CB("maxUsedSpace", -1, CFGF_NONE, parse_size_value),
         CFG_END()
     };
 
