@@ -6,6 +6,7 @@ Dependencies:
 =============
 lvm
 blktrace
+confuse
 debugfs (mounted in /sys/kernel/debug/)
 
 Compiling:
