@@ -251,6 +251,8 @@ main_loop(struct program_params *pp)
             goto cont;
         }
 
+        printf("All high tiers full\n");
+
         // pin extents to their current physical volumes, this will cause them
         // to be moved only when the temperature difference is large
         ret = add_pinning_scores(es, pp, lv_name);
@@ -279,6 +281,8 @@ main_loop(struct program_params *pp)
             }
 
             struct extents *curr_tier_min = NULL;
+
+            printf("trying to move extents from tier %i\n", tier);
 
             if (!prev_tier_max) { // get base line extents
                 ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier-1,
@@ -324,6 +328,8 @@ main_loop(struct program_params *pp)
                     fprintf(stderr, "%s:%i: queue extents failed\n", __FILE__, __LINE__);
                     goto no_cleanup;
                 }
+            } else {
+                printf("Nothing to do\n");
             }
 
             free_extents(curr_tier_min);
