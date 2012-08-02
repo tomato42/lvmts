@@ -117,6 +117,9 @@ truncate_extents(struct extents *e, size_t len)
     assert(e);
     assert(e->extents);
 
+    if (e->length == len)
+      return;
+
     assert(e->length > len);
 
     struct extent **ext;
