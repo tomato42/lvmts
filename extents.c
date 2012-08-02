@@ -93,7 +93,7 @@ struct extent *
 get_extent(struct extents *e, size_t nmemb)
 {
     assert(e);
-    assert(e->length < nmemb);
+    assert(e->length > nmemb);
     return (e->extents[nmemb]);
 }
 
@@ -117,14 +117,14 @@ truncate_extents(struct extents *e, size_t len)
     assert(e);
     assert(e->extents);
 
-    assert(e->length < len);
+    assert(e->length > len);
 
     struct extent **ext;
 
     ext = realloc(e->extents, sizeof(struct extent*) * len);
 
     if (!ext) {
-        free(e->extents);
+        //free(e->extents);
         e->extents = NULL;
         e->length = 0;
         return;
