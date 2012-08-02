@@ -53,24 +53,54 @@ get_score_scaling_factor(struct program_params *pp, const char *lv_name)
                          "timeExponent");
 }
 
-// TODO stub
-char *
+const char *
 get_tier_device(struct program_params *pp, const char *lv_name, int tier)
 {
-    static char *tiers[] = { "/dev/0",
-                       "/dev/1",
-                       "/dev/2",
-                       "/dev/3",
-                       "/dev/4"};
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
 
-    return tiers[tier];
+    cfg_t *pv_cfg;
+
+    for (size_t i=0; i < cfg_size(tmp, "pv"); i++) {
+        pv_cfg = cfg_getnsec(tmp, "pv", i);
+        if (cfg_getint(pv_cfg, "tier") == tier)
+            return cfg_getstr(pv_cfg, "path");
+    }
+
+    return NULL;
 }
 
-// TODO stub
+int
+get_device_tier(struct program_params *pp, const char *lv_name, const char *dev)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    cfg_t *pv_cfg;
+
+    for (size_t i=0; i < cfg_size(tmp, "pv"); i++) {
+        pv_cfg = cfg_getnsec(tmp, "pv", i);
+        if (!strcmp(cfg_getstr(pv_cfg, "path"), dev))
+            return cfg_getint(pv_cfg, "tier");
+    }
+    return -1;
+}
+
 float get_tier_pinning_score(struct program_params *pp, const char *lv_name,
     int tier)
 {
-    return 20-tier*10;
+    cfg_t *vol_cfg = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(vol_cfg);
+
+    cfg_t *pv_cfg;
+
+    for (size_t i=0; i < cfg_size(vol_cfg, "pv"); i++) {
+        pv_cfg = cfg_getnsec(vol_cfg, "pv", i);
+        if (cfg_getint(pv_cfg, "tier") == tier)
+            return cfg_getfloat(pv_cfg, "pinningScore");
+    }
+
+    return 0;
 }
 
 // parse time from string, such as "5m", "20s", "3h", "3:10" or "1:15:34"
@@ -371,7 +401,7 @@ read_config(struct program_params *pp)
         validate_require_nonnegative);
     cfg_set_validate_func(cfg, "volume|pv|maxUsedSpace",
         validate_require_nonnegative);
-    // TODO cfg_set_validate_func(cfg, "volume", validate_pv);
+    // TODO cfg_set_validate_func(cfg, "volume", validate_pv); // do they belong to volume, is there enough space
 
     switch(cfg_parse(cfg, pp->conf_file_path)) {
       case CFG_FILE_ERROR:
