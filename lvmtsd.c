@@ -282,7 +282,7 @@ main_loop(struct program_params *pp)
 
             struct extents *curr_tier_min = NULL;
 
-            printf("trying to move extents from tier %i\n", tier);
+            printf("trying to move cold extents from tier %i\n", tier);
 
             if (!prev_tier_max) { // get base line extents
                 ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier-1,
