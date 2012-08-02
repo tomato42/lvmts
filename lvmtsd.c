@@ -259,8 +259,7 @@ main_loop(struct program_params *pp)
             goto no_cleanup;
         }
 
-        // when no space left, get stats for all blocks, add big number (10000) to
-        // blocks in fast storage. If there are blocks in slow storage with higher
+        // If there are blocks in slow storage with higher
         // score than ones in fast storage, move 10 worst extents from fast to slow
         // if move queued, continue
         struct extents *prev_tier_max = NULL;
