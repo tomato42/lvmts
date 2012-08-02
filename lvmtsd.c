@@ -151,6 +151,12 @@ get_pvwait(struct program_params *pp, const char *lv_name)
     return cfg_getint(cfg_gettsec(pp->cfg, "volume", lv_name), "pvmoveWait");
 }
 
+static int
+get_check_wait(struct program_params *pp, const char *lv_name)
+{
+    return cfg_getint(cfg_gettsec(pp->cfg, "volume", lv_name), "checkWait");
+}
+
 /** controlling daemon main loop */
 static int
 main_loop(struct program_params *pp)
@@ -336,7 +342,7 @@ main_loop(struct program_params *pp)
 
         // wait 10 minutes
         if (!stop)
-            sleep(10*60);
+            sleep(get_check_wait(pp, lv_name));
 
 cont:
         free_extent_stats(es);
