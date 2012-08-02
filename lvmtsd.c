@@ -108,7 +108,7 @@ enum pvmove_status {
  * TODO stub
  */
 static int
-move_daemon_status(struct program_params *pp, char *lv_name)
+move_daemon_status(struct program_params *pp, const char *lv_name)
 {
     return PVMOVE_IDLE;
 }
@@ -119,7 +119,7 @@ move_daemon_status(struct program_params *pp, char *lv_name)
  */
 static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
-    char *lv_name, int dst_tier)
+    const char *lv_name, int dst_tier)
 {
     for(size_t i = 0; i < ext->length; i++) {
         printf("pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
@@ -131,7 +131,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
 
 // TODO stub
 static off_t
-get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
+get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
 {
     if (tier <= 2)
         return 4 * 1024 * 1024 * 200;
@@ -141,7 +141,7 @@ get_avaiable_space(struct program_params *pp, char *lv_name, int tier)
 
 // TODO stub
 static int
-lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
+lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
 {
     if (tier >= 1)
         return 1;
@@ -155,7 +155,7 @@ lower_tiers_exist(struct program_params *pp, char *lv_name, int tier)
  */
 static int
 add_pinning_scores(struct extent_stats *es, struct program_params *pp,
-    char *lv_name)
+    const char *lv_name)
 {
     for(size_t i=0; i < es->length; i++) {
         int tier = get_extent_tier(pp, lv_name, &es->extents[i]);
@@ -166,7 +166,7 @@ add_pinning_scores(struct extent_stats *es, struct program_params *pp,
 
 // TODO stub
 static int
-higher_tiers_exist(struct program_params *pp, char *lv_name, int tier)
+higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
 {
     if (tier < 2)
         return 1;
@@ -180,7 +180,7 @@ main_loop(struct program_params *pp)
 {
     int ret;
 
-    char *lv_name = get_first_volume_name(pp);
+    const char *lv_name = get_first_volume_name(pp);
 
     while (!stop) {
 

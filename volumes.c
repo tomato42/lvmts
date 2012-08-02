@@ -27,7 +27,7 @@
 
 // TODO stub
 off_t
-get_extent_size(struct program_params *pp, char *lv_name)
+get_extent_size(struct program_params *pp, const char *lv_name)
 {
     return 4 * 1024 * 1024;
 }
@@ -43,8 +43,8 @@ get_first_volume_name(struct program_params *pp)
 
 // selects best or worst extents in collection not residing on specific devices
 int extents_selector(struct extent_stats *es, struct extents **ret,
-    struct program_params *pp, char *lv_name, int max_tier, int max_extents,
-    int hot_cold)
+    struct program_params *pp, const char *lv_name, int max_tier,
+    int max_extents, int hot_cold)
 {
     assert(ret);
     assert(hot_cold == ES_HOT || hot_cold == ES_COLD);
@@ -94,7 +94,7 @@ extent_compare(const void *v1, const void *v2)
 }
 
 int
-get_volume_stats(struct program_params *pp, char *lv_name, struct extent_stats **es)
+get_volume_stats(struct program_params *pp, const char *lv_name, struct extent_stats **es)
 {
     assert(es);
     int f_ret = 0; // this function return code

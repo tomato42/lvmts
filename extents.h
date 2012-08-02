@@ -75,7 +75,7 @@ void truncate_extents(struct extents *e, size_t len);
 /**
  * Returns tier of provided extent in logical volume
  */
-int get_extent_tier(struct program_params *pp, char *lv_name,
+int get_extent_tier(struct program_params *pp, const char *lv_name,
     struct extent *e);
 
 #endif

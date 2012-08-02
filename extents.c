@@ -135,7 +135,7 @@ truncate_extents(struct extents *e, size_t len)
 
 // TODO stub
 int
-get_extent_tier(struct program_params *pp, char *lv_name,
+get_extent_tier(struct program_params *pp, const char *lv_name,
     struct extent *e)
 {
     return e->dev - get_tier_device(pp, NULL, 0);

@@ -9,7 +9,7 @@ struct program_params;
 /**
  * Return size of extents (in bytes) for provided volume name
  */
-off_t get_extent_size(struct program_params *pp, char *lv_name);
+off_t get_extent_size(struct program_params *pp, const char *lv_name);
 
 /**
  * Return volume name of first defined logical volume in config file
@@ -31,7 +31,7 @@ const char *get_first_volume_name(struct program_params *pp);
 int extents_selector(   struct extent_stats *es,
                         struct extents **ret,
                         struct program_params *pp,
-                        char *lv_name,
+                        const char *lv_name,
                         int max_tier,
                         int max_extents,
                         int hot_cold);
@@ -39,7 +39,7 @@ int extents_selector(   struct extent_stats *es,
 /**
  * Pull statistics from lvmtsm file
  */
-int get_volume_stats(struct program_params *pp, char *lv_name,
+int get_volume_stats(struct program_params *pp, const char *lv_name,
     struct extent_stats **es);
 
 #endif
