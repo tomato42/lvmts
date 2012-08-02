@@ -274,9 +274,9 @@ main_loop(struct program_params *pp)
 
             if (!free_space) {
                 if (higher_tiers_exist(pp, lv_name, tier))
-                  continue;
+                    continue;
                 else
-                  break;
+                    break;
             }
 
             struct extents *curr_tier_min = NULL;
