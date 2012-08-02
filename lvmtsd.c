@@ -194,18 +194,18 @@ main_loop(struct program_params *pp)
         // move hot extents from slow storage, queue the move in move daemon
         // continue if move queued
         for (int tier=0; tier<TIER_MAX; tier++) {
+
+            if (!lower_tiers_exist(pp, lv_name, tier))
+                break;
+
             off_t free_space = get_avaiable_space(pp, lv_name, tier);
             if (free_space < 0) {
                 fprintf(stderr, "get_free_space error\n");
                 goto no_cleanup;
             }
 
-            if (free_space == 0) {
-                if (lower_tiers_exist(pp, lv_name, tier))
-                    continue;
-                else
-                    break;
-            }
+            if (free_space == 0)
+                continue;
 
             // always leave 5 extents worth of free space so that we always
             // can move cold extents from higher tier
@@ -282,7 +282,7 @@ main_loop(struct program_params *pp)
             struct extents *curr_tier_min = NULL;
 
             if (!prev_tier_max) { // get base line extents
-                ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier,
+                ret = extents_selector(es, &prev_tier_max, pp, lv_name, tier-1,
                     5, ES_HOT);
                 if (ret) {
                     fprintf(stderr, "extent_selector error\n");
@@ -298,8 +298,8 @@ main_loop(struct program_params *pp)
                 goto no_cleanup;
             }
 
-            // check if extents in lower tier aren't hotter
-            if (compare_extents(prev_tier_max, curr_tier_min) < 0) {
+            // check if extents in lower tier are hotter
+            if (compare_extents(prev_tier_max, curr_tier_min) > 0) {
                 float prev_score = get_extent_score(get_extent(prev_tier_max, 0));
                 float curr_score = get_extent_score(get_extent(curr_tier_min, 0));
                 // don't move more extents that would push very hot extents
