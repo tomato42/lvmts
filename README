@@ -16,6 +16,8 @@ Usage:
 ======
 Run collector daemon:
 
+MAKE SURE YOU HAVE debugfs MOUNTED!
+
 ./lvmtscd -f lvm-volume.lvmts -l /dev/lvm-group/lvm-volume
 
 After some time you can output the stats using cat (by default it will output
