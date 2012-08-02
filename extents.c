@@ -154,8 +154,8 @@ get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
       return avaiable_space;
 
     long int used_space = get_used_space_on_pv(
-        get_volume_lv(pp, lv_name),
         get_volume_vg(pp, lv_name),
+        get_volume_lv(pp, lv_name),
         pv_name);
 
     used_space *= get_pe_size(get_volume_vg(pp, lv_name));
