@@ -25,32 +25,32 @@
 #include <errno.h>
 #include "config.h"
 
-// TODO stub
 float
 get_read_multiplier(struct program_params *pp, const char *lv_name)
 {
-    return 1;
+    return cfg_getfloat(cfg_gettsec(pp->cfg, "volume", lv_name),
+                         "readMultiplier");
 }
 
-// TODO stub
 float
 get_write_multiplier(struct program_params *pp, const char *lv_name)
 {
-    return 10;
+    return cfg_getfloat(cfg_gettsec(pp->cfg, "volume", lv_name),
+                         "writeMultiplier");
 }
 
-// TODO stub
 float
 get_hit_score(struct program_params *pp, const char *lv_name)
 {
-    return 16;
+    return cfg_getfloat(cfg_gettsec(pp->cfg, "volume", lv_name),
+                         "hitScore");
 }
 
-// TODO stub
 float
 get_score_scaling_factor(struct program_params *pp, const char *lv_name)
 {
-    return pow(2,-15);
+    return cfg_getfloat(cfg_gettsec(pp->cfg, "volume", lv_name),
+                         "timeExponent");
 }
 
 // TODO stub
