@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "lvmls.h"
 
 // information about continuous extent allocations
@@ -457,6 +458,27 @@ uint64_t get_free_extent_number(char *vg_name, char *pv_name)
             if (!strcmp(pv_segments[i].vg_name, vg_name) &&
                 !strcmp(pv_segments[i].pv_type, "free"))
               sum+=pv_segments[i].pv_length;
+
+    return sum;
+}
+
+// return used number of extents by LV on provided PV
+uint64_t get_used_space_on_pv(char *vg_name, char *lv_name, char *pv_name)
+{
+    assert(vg_name);
+    assert(lv_name);
+    assert(pv_name);
+
+    uint64_t sum = 0;
+
+    for(size_t i=0; i < pv_segments_num; i++) {
+        if(!strcmp(pv_segments[i].lv_name, lv_name) &&
+           !strcmp(pv_segments[i].vg_name, vg_name) &&
+           !strcmp(pv_segments[i].pv_name, pv_name)) {
+
+            sum += pv_segments[i].pv_length;
+        }
+    }
 
     return sum;
 }
