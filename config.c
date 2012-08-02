@@ -349,8 +349,8 @@ validate_require_positive(cfg_t *cfg, cfg_opt_t *opt)
     return 0;
 }
 
-/* read configuration file
- * TODO
+/*
+ * read configuration file
  */
 int
 read_config(struct program_params *pp)
