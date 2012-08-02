@@ -122,10 +122,22 @@ static int
 queue_extents_move(struct extents *ext, struct program_params *pp,
     const char *lv_name, int dst_tier)
 {
+    char *cmd = malloc(sizeof(char) * 4096);
+    int ret;
     for(size_t i = 0; i < ext->length; i++) {
-        printf("pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
+        snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
             ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
             ext->extents[i]->le, ext->extents[i]->score);
+        printf(cmd);
+        ret = system(cmd);
+        if (ret == -1) {
+            fprintf(stderr, "Executing command failed\n");
+            return 1;
+        }
+        if (WEXITSTATUS(ret) != 0) {
+            fprintf(stderr, "Error from pvmove: %i\n", WEXITSTATUS(ret));
+            return 1;
+        }
     }
     return 0;
 }
