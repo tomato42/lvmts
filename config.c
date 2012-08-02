@@ -21,6 +21,8 @@
 #include <math.h>
 #include <confuse.h>
 #include <assert.h>
+#include <string.h>
+#include <errno.h>
 #include "config.h"
 
 // TODO stub
@@ -371,9 +373,22 @@ read_config(struct program_params *pp)
         validate_require_nonnegative);
     // TODO cfg_set_validate_func(cfg, "volume", validate_pv);
 
-    cfg_parse(cfg, "doc/sample.conf");
+    switch(cfg_parse(cfg, pp->conf_file_path)) {
+      case CFG_FILE_ERROR:
+        fprintf(stderr, "Configuration file \"%s\" could not be read: %s\n",
+            pp->conf_file_path, strerror(errno));
+        return 1;
+      case CFG_SUCCESS:
+        break;
+      case CFG_PARSE_ERROR:
+        fprintf(stderr, "Configuration file errors, aborting\n");
+        return 1;
+      default:
+        fprintf(stderr, "Internal error");
+        assert(0);
+    }
 
-    cfg_free(cfg);
+    pp->cfg = cfg;
 
     return 0;
 }

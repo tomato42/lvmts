@@ -45,8 +45,10 @@ new_program_params()
   if (!pp)
     return NULL;
 
-  pp->conf_file_path = strdup("/etc/lvmts/lvmtsd.conf");
+  pp->conf_file_path = strdup("doc/sample.conf");
   pp->pvmove_wait = 60; // XXX 5 minutes
+
+  pp->cfg = NULL;
 
   return pp;
 }
@@ -55,15 +57,18 @@ new_program_params()
 void
 free_program_params(struct program_params *pp)
 {
-  if(!pp)
-    return;
+    if(!pp)
+        return;
 
-  if(pp->conf_file_path)
-    free(pp->conf_file_path);
+    if(pp->conf_file_path)
+        free(pp->conf_file_path);
 
-  lvm2_exit(pp->lvm2_handle);
+    cfg_free(pp->cfg);
 
-  free(pp);
+    if (pp->lvm2_handle)
+        lvm2_exit(pp->lvm2_handle);
+
+    free(pp);
 }
 
 /** parse CLI arguments
@@ -403,7 +408,6 @@ main(int argc, char **argv)
     // read config file
     ret = read_config(pp);
     if (ret) {
-        fprintf(stderr, "can't read config file\n");
         f_ret = EXIT_FAILURE;
         goto program_params_cleanup;
     }
