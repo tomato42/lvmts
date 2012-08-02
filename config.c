@@ -53,6 +53,54 @@ get_score_scaling_factor(struct program_params *pp, const char *lv_name)
                          "timeExponent");
 }
 
+int
+lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    int highest_tier;
+    cfg_t *pv_cfg = cfg_getnsec(tmp, "pv", 0);
+    highest_tier = cfg_getint(pv_cfg, "tier");
+    if (highest_tier > tier)
+        return 1;
+
+    for (size_t i=1; i < cfg_size(tmp, "pv"); i++) {
+        pv_cfg = cfg_getnsec(tmp, "pv", i);
+        if (cfg_getint(pv_cfg, "tier") > highest_tier)
+            highest_tier = cfg_getint(pv_cfg, "tier");
+    }
+
+    if (highest_tier > tier)
+        return 1;
+
+    return 0;
+}
+
+int
+higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
+{
+    cfg_t *tmp = cfg_gettsec(pp->cfg, "volume", lv_name);
+    assert(tmp);
+
+    int lowest_tier;
+    cfg_t *pv_cfg = cfg_getnsec(tmp, "pv", 0);
+    lowest_tier = cfg_getint(pv_cfg, "tier");
+    if (lowest_tier < tier)
+        return 1;
+
+    for (size_t i=1; i < cfg_size(tmp, "pv"); i++) {
+        pv_cfg = cfg_getnsec(tmp, "pv", i);
+        if (cfg_getint(pv_cfg, "tier") < lowest_tier)
+            lowest_tier = cfg_getint(pv_cfg, "tier");
+    }
+
+    if (lowest_tier < tier)
+        return 1;
+
+    return 0;
+}
+
 const char *
 get_tier_device(struct program_params *pp, const char *lv_name, int tier)
 {

@@ -138,16 +138,6 @@ get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
     return 0;
 }
 
-// TODO stub
-static int
-lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
-{
-    if (tier >= 1)
-        return 1;
-
-    return 0;
-}
-
 /**
  * Add scores used for pinning extents to their current tier (so that they
  * aren't moved back and forth because of small changes in score)
@@ -161,16 +151,6 @@ add_pinning_scores(struct extent_stats *es, struct program_params *pp,
         es->extents[i].score += get_tier_pinning_score(pp, lv_name, tier);
     }
     return 0;
-}
-
-// TODO stub
-static int
-higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier)
-{
-    if (tier < 2)
-        return 1;
-    else
-        return 0;
 }
 
 static int

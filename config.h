@@ -36,6 +36,16 @@ float get_tier_pinning_score(struct program_params *pp, const char *lv_name,
     int tier);
 
 /**
+ * checks if tiers with larger tier value exist for provided volume
+ */
+int lower_tiers_exist(struct program_params *pp, const char *lv_name, int tier);
+
+/**
+ * checks if tiers with smaller tier value exist for provided volume
+ */
+int higher_tiers_exist(struct program_params *pp, const char *lv_name, int tier);
+
+/**
  * read configuration file
  */
 int read_config(struct program_params *pp);
