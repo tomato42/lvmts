@@ -269,8 +269,51 @@ parse_size_value(cfg_t *cfg, cfg_opt_t *opt, const char *value, void *result)
 
     *(long int*)result = res;
 
-    fprintf(stderr, "%s: %li\n", opt->name, res);
+    return 0;
+}
 
+static int
+validate_require_nonnegative(cfg_t *cfg, cfg_opt_t *opt)
+{
+    if (opt->type == CFGT_INT) {
+        long int value = cfg_opt_getnint(opt, cfg_opt_size(opt) - 1);
+        if (value < 0) {
+            cfg_error(cfg, "Value for option %s can't be negative in %s section \"%s\"",
+                opt->name, cfg->name, cfg_title(cfg));
+            return -1;
+        }
+    } else if (opt->type == CFGT_FLOAT) {
+        double value = cfg_opt_getnfloat(opt, cfg_opt_size(opt) - 1);
+        if (value < 0.0) {
+            cfg_error(cfg, "Value for option %s can't be negative in %s section \"%s\"",
+                opt->name, cfg->name, cfg_title(cfg));
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int
+validate_require_positive(cfg_t *cfg, cfg_opt_t *opt)
+{
+    assert(opt->type == CFGT_INT || opt->type == CFGT_FLOAT);
+
+    if (opt->type == CFGT_INT) {
+        long int value = cfg_opt_getnint(opt, cfg_opt_size(opt) - 1);
+        if (value <= 0) {
+            cfg_error(cfg, "Value for option %s must be positive in %s section \"%s\"",
+                opt->name, cfg->name, cfg_title(cfg));
+            return -1;
+        }
+    } else if (opt->type == CFGT_FLOAT) {
+        double value = cfg_opt_getnfloat(opt, cfg_opt_size(opt) - 1);
+        if (value <= 0.0) {
+            cfg_error(cfg, "Value for option %s must be positive in %s section \"%s\"",
+                opt->name, cfg->name, cfg_title(cfg));
+            return -1;
+        }
+    }
     return 0;
 }
 
@@ -309,8 +352,24 @@ read_config(struct program_params *pp)
     cfg_t *cfg;
 
     cfg = cfg_init(opts, CFGF_NONE);
+    assert(cfg);
 
-    // TODO add verification functions
+    // add verification functions
+    cfg_set_validate_func(cfg, "volume|timeExponent",
+        validate_require_positive);
+    cfg_set_validate_func(cfg, "volume|hitScore",
+        validate_require_positive);
+    cfg_set_validate_func(cfg, "volume|readMultiplier",
+        validate_require_nonnegative);
+    cfg_set_validate_func(cfg, "volume|writeMultiplier",
+        validate_require_nonnegative);
+    cfg_set_validate_func(cfg, "volume|pv|pinningScore",
+        validate_require_nonnegative);
+    cfg_set_validate_func(cfg, "volume|pv|tier",
+        validate_require_nonnegative);
+    cfg_set_validate_func(cfg, "volume|pv|maxUsedSpace",
+        validate_require_nonnegative);
+    // TODO cfg_set_validate_func(cfg, "volume", validate_pv);
 
     cfg_parse(cfg, "doc/sample.conf");
 
