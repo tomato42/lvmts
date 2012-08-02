@@ -146,7 +146,8 @@ get_avaiable_space(struct program_params *pp, const char *lv_name, int tier)
 {
 
     const char *pv_name = get_tier_device(pp, lv_name, tier);
-    assert(pv_name);
+    if (!pv_name)
+      return 0;
 
     off_t avaiable_space = get_max_space_tier(pp, lv_name, tier);
 
