@@ -61,9 +61,9 @@ _compare_segments(const void *a, const void *b)
     if (alloc_a->lv_start == alloc_b->lv_start)
         return 0;
     else if (alloc_a->lv_start > alloc_b->lv_start)
-        return -1;
-    else
         return 1;
+    else
+        return -1;
 }
 
 static int
@@ -87,9 +87,9 @@ _find_segment(const void *key, const void *b)
         && alloc_a->lv_start < alloc_b->lv_start + alloc_b->pv_length)
         return 0;
     else if (alloc_a->lv_start > alloc_b->lv_start)
-        return -1;
-    else
         return 1;
+    else
+        return -1;
 }
 
 void sort_segments(struct pv_allocations *segments, size_t nmemb)
