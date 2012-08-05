@@ -36,6 +36,23 @@ struct le_info {
     const char *lv_name;
 };
 
+// information about continuous extent allocations
+struct pv_allocations {
+    char *pv_name;
+    char *vg_name;
+    char *vg_format; // not used
+    char *vg_attr; // not used
+    char *lv_name;
+    char *pv_type; // type of allocation ("free", "linear", "striped")
+    uint64_t pv_start; // starting extent in PV
+    uint64_t pv_length;
+    uint64_t lv_start; // starting extent of this segment in LV
+};
+
+// TODO move to program_params
+extern struct pv_allocations *pv_segments;
+extern size_t pv_segments_num;
+
 void pv_info_free(struct pv_info *pv);
 
 // convert logical extent from logical volume specified by lv_name,
