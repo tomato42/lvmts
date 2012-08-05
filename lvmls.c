@@ -497,7 +497,7 @@ get_PE_allocation(const char *vg_name, const char *pv_name,
 {
     const char *free_str = "free";
 
-    struct le_info ret = { .dev = NULL };
+    struct le_info ret = { .dev = NULL, .lv_name = NULL };
 
     for (size_t i=0; i < pv_segments_num; i++) {
         if (!strcmp(pv_segments[i].vg_name, vg_name) &&

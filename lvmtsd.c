@@ -144,21 +144,21 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
         optimal = get_PE_allocation(get_volume_vg(pp, lv_name), pv_name,
             optimal_pe);
 
-        if (!strcmp(optimal.lv_name, "free")) {
+        if (optimal.lv_name && !strcmp(optimal.lv_name, "free")) {
             printf("PE %li is free\n", optimal.pe);
             snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s:%li "
                 "# LE: %li, score: %f\n",
                 ext->extents[i]->dev, ext->extents[i]->pe,
-                optimal.dev, optimal.le,
+                optimal.dev, optimal.pe,
                 ext->extents[i]->le, ext->extents[i]->score);
             printf(cmd);
         } else {
             if (optimal.dev == NULL)
                 printf("PE %li is above disk boundary, using default allocation\n",
-                    optimal.pe);
+                    optimal_pe);
             else
                 printf("PE %li is allocated by LV %s LE %li\n, using default allocation\n",
-                    optimal.pe, optimal.lv_name, optimal.le);
+                    optimal_pe, optimal.lv_name, optimal.le);
 
             snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
                 ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
