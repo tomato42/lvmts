@@ -29,6 +29,13 @@ struct pv_info {
     uint64_t start_seg;
 };
 
+struct le_info {
+    uint64_t le;
+    uint64_t pe;
+    const char *dev;
+    const char *lv_name;
+};
+
 void pv_info_free(struct pv_info *pv);
 
 // convert logical extent from logical volume specified by lv_name,
@@ -42,6 +49,16 @@ uint64_t get_pe_size(const char *vg_name);
  * Returns amount of free extents on pv in vg
  */
 uint64_t get_free_extent_number(const char *vg_name, const char *pv_name);
+
+
+struct le_info get_first_LE_info(const char *vg_name, const char *lv_name,
+    const char *pv_name);
+
+/**
+ * Return type of allocation for provided PE
+ */
+struct le_info get_PE_allocation(const char *vg_name, const char *pv_name,
+    uint64_t pe_num);
 
 /**
  * Returns number of extents used by lv on specified pv in vg

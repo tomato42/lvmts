@@ -463,6 +463,66 @@ uint64_t get_free_extent_number(const char *vg_name, const char *pv_name)
     return sum;
 }
 
+struct le_info
+get_first_LE_info(const char *vg_name, const char *lv_name,
+    const char *pv_name)
+{
+    struct le_info ret = { .dev = NULL };
+
+    for (size_t i=0; i < pv_segments_num; i++) {
+        if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+            !strcmp(pv_segments[i].pv_name, pv_name) &&
+            !strcmp(pv_segments[i].lv_name, lv_name)) {
+
+            if (ret.dev == NULL) { // save first segment info
+                ret.le = pv_segments[i].lv_start;
+                ret.pe = pv_segments[i].pv_start;
+                ret.dev = pv_segments[i].pv_name;
+            } else {
+                if (ret.le > pv_segments[i].lv_start) {
+                    ret.le = pv_segments[i].lv_start;
+                    ret.pe = pv_segments[i].pv_start;
+                    ret.dev = pv_segments[i].pv_name;
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
+struct le_info
+get_PE_allocation(const char *vg_name, const char *pv_name,
+    uint64_t pe_num)
+{
+    const char *free_str = "free";
+
+    struct le_info ret = { .dev = NULL };
+
+    for (size_t i=0; i < pv_segments_num; i++) {
+        if (!strcmp(pv_segments[i].vg_name, vg_name) &&
+            !strcmp(pv_segments[i].pv_name, pv_name) &&
+            pv_segments[i].pv_start <= pe_num &&
+            pv_segments[i].pv_start + pv_segments[i].pv_length > pe_num) {
+
+            ret.dev = pv_segments[i].pv_name;
+            if (!strcmp(pv_segments[i].pv_type, free_str))
+                ret.lv_name = free_str;
+            else
+                ret.lv_name = pv_segments[i].lv_name;
+
+            uint64_t diff = pe_num - pv_segments[i].pv_start;
+
+            ret.le = pv_segments[i].lv_start + diff;
+            ret.pe = pv_segments[i].pv_start + diff;
+
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
 // return used number of extents by LV on provided PV
 uint64_t get_used_space_on_pv(const char *vg_name, const char *lv_name,
     const char *pv_name)
@@ -540,6 +600,35 @@ int main(int argc, char **argv)
         pv_info->pv_name,
         used_extents,
         used_extents * get_pe_size(argv[1]));
+
+    struct le_info le_inf;
+
+    le_inf = get_first_LE_info(argv[1], argv[2], pv_info->pv_name);
+
+    printf("First LE on %s is %li at PE %li\n",
+        le_inf.dev, le_inf.le, le_inf.pe);
+
+    long int optimal_pe = le_inf.pe + atoi(argv[3]) - le_inf.le;
+
+    printf("Optimal position for LE %i is at %s:%li\n", atoi(argv[3]),
+        le_inf.dev, optimal_pe);
+
+    printf("%s:%li is ", le_inf.dev, optimal_pe);
+
+    if (optimal_pe == pv_info->start_seg) {
+        printf("allocated correctly\n");
+    } else {
+        struct le_info optimal;
+        optimal = get_PE_allocation(argv[1],  pv_info->pv_name, optimal_pe);
+
+        if (optimal.dev == NULL)
+            printf("after the end of the device\n");
+        else if (!strcmp(optimal.lv_name, "free"))
+            printf("free\n");
+        else
+            printf("allocated to %s, LE: %li\n", optimal.lv_name, optimal.le);
+
+    }
 
 
     pv_info_free(pv_info);
