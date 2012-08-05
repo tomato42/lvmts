@@ -125,10 +125,47 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
     char *cmd = malloc(sizeof(char) * 4096);
     int ret;
     for(size_t i = 0; i < ext->length; i++) {
-        snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
-            ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
-            ext->extents[i]->le, ext->extents[i]->score);
-        printf(cmd);
+        const char *pv_name = get_tier_device(pp, lv_name, dst_tier);
+        printf("Calculating optimal position for LE extent %li on %s...\n",
+            ext->extents[i]->le, pv_name);
+
+        struct le_info le_inf;
+        le_inf = get_first_LE_info(get_volume_vg(pp, lv_name),
+            get_volume_lv(pp, lv_name), pv_name);
+
+        printf("First LE on %s is %li, PE: %li\n",
+            le_inf.dev, le_inf.le, le_inf.pe);
+
+        uint64_t optimal_pe = le_inf.pe + ext->extents[i]->le - le_inf.le;
+        printf("Optimal position for LE %li is PE %li\n",
+            ext->extents[i]->le, optimal_pe);
+
+        struct le_info optimal;
+        optimal = get_PE_allocation(get_volume_vg(pp, lv_name), pv_name,
+            optimal_pe);
+
+        if (!strcmp(optimal.lv_name, "free")) {
+            printf("PE %li is free\n", optimal.pe);
+            snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s:%li "
+                "# LE: %li, score: %f\n",
+                ext->extents[i]->dev, ext->extents[i]->pe,
+                optimal.dev, optimal.le,
+                ext->extents[i]->le, ext->extents[i]->score);
+            printf(cmd);
+        } else {
+            if (optimal.dev == NULL)
+                printf("PE %li is above disk boundary, using default allocation\n",
+                    optimal.pe);
+            else
+                printf("PE %li is allocated by LV %s LE %li\n, using default allocation\n",
+                    optimal.pe, optimal.lv_name, optimal.le);
+
+            snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
+                ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
+                ext->extents[i]->le, ext->extents[i]->score);
+            printf(cmd);
+        }
+
         ret = system(cmd);
         if (ret == -1) {
             fprintf(stderr, "Executing command failed\n");
@@ -138,6 +175,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
             fprintf(stderr, "Error from pvmove: %i\n", WEXITSTATUS(ret));
             return 1;
         }
+        printf("LE %li moved\n", ext->extents[i]->le);
     }
     return 0;
 }
@@ -312,6 +350,9 @@ main_loop(struct program_params *pp)
                 fprintf(stderr, "%s:%i: extent_selector error\n", __FILE__, __LINE__);
                 goto no_cleanup;
             }
+
+            printf("low tier best: %f\n", prev_tier_max->extents[0]->score);
+            printf("high tier worst: %f\n", curr_tier_min->extents[0]->score);
 
             // check if extents in lower tier are hotter
             if (compare_extents(prev_tier_max, curr_tier_min) > 0) {
