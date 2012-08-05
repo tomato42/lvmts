@@ -247,8 +247,10 @@ get_block_activity_raw_score(struct block_activity *block, int type,
 		} else if (type == T_WRITE) {
 			time_diff = block->writes[i].time - last_access;
 			last_access = block->writes[i].time;
-		} else
+		} else {
 			assert(1);
+            return -1;
+        }
 
         // "age" past score
 		score *= exp(-1.0 * scale * time_diff);
