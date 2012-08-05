@@ -146,7 +146,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
 
         if (optimal.lv_name && !strcmp(optimal.lv_name, "free")) {
             printf("PE %li is free\n", optimal.pe);
-            snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s:%li "
+            snprintf(cmd, 4096, "pvmove -i1 --alloc anywhere %s:%li %s:%li "
                 "# LE: %li, score: %f\n",
                 ext->extents[i]->dev, ext->extents[i]->pe,
                 optimal.dev, optimal.pe,
@@ -160,7 +160,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
                 printf("PE %li is allocated by LV %s LE %li\n, using default allocation\n",
                     optimal_pe, optimal.lv_name, optimal.le);
 
-            snprintf(cmd, 4096, "pvmove --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
+            snprintf(cmd, 4096, "pvmove -i1 --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
                 ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
                 ext->extents[i]->le, ext->extents[i]->score);
             printf(cmd);
