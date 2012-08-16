@@ -124,6 +124,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
 {
     char *cmd = malloc(sizeof(char) * 4096);
     int ret;
+    int error = 0;
     for(size_t i = 0; i < ext->length; i++) {
         const char *pv_name = get_tier_device(pp, lv_name, dst_tier);
         printf("Calculating optimal position for LE extent %li on %s...\n",
@@ -159,7 +160,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
             else
                 printf("PE %li is allocated by LV %s LE %li\n, using default allocation\n",
                     optimal_pe, optimal.lv_name, optimal.le);
-
+retry_pvmove:
             snprintf(cmd, 4096, "pvmove -i1 --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
                 ext->extents[i]->pe, get_tier_device(pp, lv_name, dst_tier),
                 ext->extents[i]->le, ext->extents[i]->score);
@@ -172,9 +173,16 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
             return 1;
         }
         if (WEXITSTATUS(ret) != 0) {
-            fprintf(stderr, "Error from pvmove: %i\n", WEXITSTATUS(ret));
-            return 1;
+            if (error) {
+                fprintf(stderr, "Error from pvmove: %i, giving up.\n", WEXITSTATUS(ret));
+                return 1;
+            } else {
+                fprintf(stderr, "Error from pvmove: %i, retrying with default alloc.\n", WEXITSTATUS(ret));
+                error = 1;
+                goto retry_pvmove;
+            }
         }
+        error = 0;
         printf("LE %li moved\n", ext->extents[i]->le);
     }
     return 0;
