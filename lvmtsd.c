@@ -158,7 +158,7 @@ queue_extents_move(struct extents *ext, struct program_params *pp,
                 printf("PE %li is above disk boundary, using default allocation\n",
                     optimal_pe);
             else
-                printf("PE %li is allocated by LV %s LE %li\n, using default allocation\n",
+                printf("PE %li is allocated by LV %s LE %li, using default allocation\n",
                     optimal_pe, optimal.lv_name, optimal.le);
 retry_pvmove:
             snprintf(cmd, 4096, "pvmove -i1 --alloc anywhere %s:%li %s # LE: %li, score: %f\n", ext->extents[i]->dev,
