@@ -9,6 +9,10 @@ struct program_params {
     cfg_t *cfg;
 };
 
+struct program_params* new_program_params();
+
+void free_program_params(struct program_params *pp);
+
 float get_read_multiplier(struct program_params *pp, const char *lv_name);
 
 float get_write_multiplier(struct program_params *pp, const char *lv_name);

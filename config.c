@@ -23,7 +23,46 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
+#include <lvm2cmd.h>
 #include "config.h"
+#include "lvmls.h"
+
+/** Create new program_params with default settings */
+struct program_params*
+new_program_params()
+{
+  struct program_params *pp;
+
+  pp = calloc(sizeof(struct program_params),1);
+  if (!pp)
+    return NULL;
+
+  pp->conf_file_path = strdup("doc/sample.conf");
+
+  pp->cfg = NULL;
+
+  return pp;
+}
+
+/** destroy program_params */
+void
+free_program_params(struct program_params *pp)
+{
+    if(!pp)
+        return;
+
+    if(pp->conf_file_path)
+        free(pp->conf_file_path);
+
+    cfg_free(pp->cfg);
+
+    if (pp->lvm2_handle)
+        lvm2_exit(pp->lvm2_handle);
+
+    le_to_pe_exit(pp);
+
+    free(pp);
+}
 
 float
 get_read_multiplier(struct program_params *pp, const char *lv_name)

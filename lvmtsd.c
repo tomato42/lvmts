@@ -35,43 +35,6 @@
 /** variable defining ordered shutdown */
 int stop = 0;
 
-/** Create new program_params with default settings */
-static struct program_params*
-new_program_params()
-{
-  struct program_params *pp;
-
-  pp = calloc(sizeof(struct program_params),1);
-  if (!pp)
-    return NULL;
-
-  pp->conf_file_path = strdup("doc/sample.conf");
-
-  pp->cfg = NULL;
-
-  return pp;
-}
-
-/** destroy program_params */
-void
-free_program_params(struct program_params *pp)
-{
-    if(!pp)
-        return;
-
-    if(pp->conf_file_path)
-        free(pp->conf_file_path);
-
-    cfg_free(pp->cfg);
-
-    if (pp->lvm2_handle)
-        lvm2_exit(pp->lvm2_handle);
-
-    le_to_pe_exit(pp);
-
-    free(pp);
-}
-
 /** parse CLI arguments
  * TODO
  */

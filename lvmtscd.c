@@ -30,7 +30,9 @@
 #include <pthread.h>
 #include <getopt.h>
 #include <signal.h>
+#include "volumes.h"
 #include "activity_stats.h"
+#include "config.h"
 
 static int programEnd = 0;
 
@@ -370,7 +372,7 @@ void
 ignoreHandler(int dummy) {
 }
 
-struct program_params {
+struct lvmtscd_params {
 	size_t esize; /**< extent size */
 	int64_t granularity;
 	char *file;
@@ -378,6 +380,8 @@ struct program_params {
 	char *lv_dev_name;
 	int daemonize;
 	int show_help;
+    char *config_file;
+    struct program_params *pp;
 };
 
 void
@@ -391,11 +395,12 @@ usage(char *name) {
 	printf("\t-l,--lv-dev d    Monitor device `d`\n");
 	printf("\t-d,--debug       Don't daemonize, run in forground\n");
 	printf("\t--delay l        How often write statistics to file (in seconds)\n");
+    printf("\t-c,--config c    Name of config file\n");
 	printf("\t-?,--help        This message\n");
 }
 
 int
-parse_arguments(int argc, char **argv, struct program_params *pp) {
+parse_arguments(int argc, char **argv, struct lvmtscd_params *pp) {
 	assert(pp);
 	int f_ret = 0;
 	int c;
@@ -417,6 +422,7 @@ parse_arguments(int argc, char **argv, struct program_params *pp) {
 		{"debug",        no_argument,       0, 'd' }, // 4
 		{"help",         no_argument,       0, '?' }, // 5
 		{"delay",        required_argument, 0, 0 }, // 6
+        {"config",       required_argument, 0, 'c'}, // 7
 		{0, 0, 0, 0}
 	};
 
@@ -481,6 +487,9 @@ parse_arguments(int argc, char **argv, struct program_params *pp) {
 				f_ret = 1;
 				goto usage;
 				break;
+            case 'c':
+                pp->config_file = optarg;
+                break;
 			default:
 				f_ret = 1;
 				fprintf(stderr, "Unknown option %c\n", c);
@@ -517,12 +526,32 @@ main(int argc, char **argv) {
 	struct thread_param *tp = malloc(sizeof(struct thread_param));
 	assert(tp);
 
-	struct program_params pp = { 0 };
+	struct lvmtscd_params pp = { 0 };
 
 	if (parse_arguments(argc, argv, &pp)) {
 		free(tp);
 		return 1;
 	}
+
+    pp.pp = new_program_params();
+    if(!pp.pp) {
+        fprintf(stderr, "Out of memory error\n");
+        exit(1);
+    }
+
+    pp.pp->conf_file_path = pp.config_file;
+
+    ret = read_config(pp.pp);
+    if(ret) {
+        free_program_params(pp.pp);
+        exit(1);
+    }
+
+    const char *vol_name = get_first_volume_name(pp.pp);
+
+    if(!pp.lv_dev_name)
+      asprintf(&pp.lv_dev_name, "/dev/%s/%s", get_volume_vg(pp.pp, vol_name),
+          get_volume_lv(pp.pp, vol_name));
 
 	//activ = new_activity_stats_s(1<<10); // assume 2^11 extents (40GiB)
 	if(read_activity_stats(&activ, pp.file)) {
@@ -573,6 +602,7 @@ main(int argc, char **argv) {
 	pthread_join(thread, &thret);
 
 	destroy_activity_stats(activ);
+    free_program_params(pp.pp);
 
 	fprintf(stderr, "done\n");
 

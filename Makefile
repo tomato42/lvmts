@@ -26,8 +26,8 @@ lvmls: lvmls.c
 lvmdefrag: lvmdefrag.c
 	$(CC) $(CFLAGS) lvmdefrag.c lvmls.o $(LFLAGS) -o lvmdefrag
 
-lvmtscd: lvmtscd.c activity_stats.o
-	$(CC) $(CFLAGS) lvmtscd.c activity_stats.o -o lvmtscd
+lvmtscd: lvmtscd.c activity_stats.o config.o lvmls.o volumes.o extents.o
+	$(CC) $(CFLAGS) lvmtscd.c activity_stats.o config.o lvmls.o volumes.o extents.o $(LFLAGS) -o lvmtscd
 
 lvmtscat: lvmtscat.c activity_stats.o lvmls.o
 	$(CC) $(CFLAGS) lvmtscat.c activity_stats.o lvmls.o $(LFLAGS) -o lvmtscat
