@@ -266,6 +266,9 @@ collect_trace_points(char *device,
 	int64_t tim;
 	int64_t trace_start = time(NULL);
 	int64_t extent;
+    double mean_lifetime = 3*24*60*60.0L; // TODO
+    double hit_score = 16.0L; // TODO
+
 
 	n = asprintf(&command, TRACE_APP " %s", device);
 	if (n <= 0)
@@ -287,17 +290,17 @@ collect_trace_points(char *device,
 							&tp->len, &extent,
 							ssize, esize))
 					add_block_read(activity, extent, tim,
-							granularity);
+						    mean_lifetime, hit_score);
 				add_block_read(activity, extent, tim,
-						granularity);
+						mean_lifetime, hit_score);
 			} else if (strchr(tp->rwbs_data, 'W') != NULL ) { // write
 				while(trace_blocks_to_extents(&tp->block,
 							&tp->len, &extent,
 							ssize, esize))
 					add_block_write(activity, extent, tim,
-							granularity);
+							mean_lifetime, hit_score);
 				add_block_write(activity, extent, tim,
-						granularity);
+						mean_lifetime, hit_score);
 			} // ignore other types of operations
 		}
 	}

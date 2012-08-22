@@ -157,10 +157,10 @@ get_volume_stats(struct program_params *pp, const char *lv_name, struct extent_s
         e->le = i;
         e->pe = pv_i->start_seg;
         e->read_score =
-            get_block_activity_raw_score(ba, T_READ, hit_score, scale);
+            get_block_activity_raw_score(ba, T_READ);
         e->last_read_access = get_last_read_time(ba);
         e->write_score =
-            get_block_activity_raw_score(ba, T_WRITE, hit_score, scale);
+            get_block_activity_raw_score(ba, T_WRITE);
         e->last_write_access = get_last_write_time(ba);
 
         e->score = calculate_score( e->read_score,

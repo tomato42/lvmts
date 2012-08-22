@@ -156,6 +156,7 @@ main(int argc, char **argv)
 {
 	int ret = 0;
 	int n;
+    double mean_lifetime = 3 * 24 * 60 * 60;
 
 	if (parse_arguments(argc, argv))
 		return 1;
@@ -188,9 +189,9 @@ main(int argc, char **argv)
 
 	if(get_max)
 	   get_best_blocks_with_max_score(as, &bs, blocks, read_mult,
-			   write_mult, max_score);
+			   write_mult, mean_lifetime, max_score);
 	else
-	   get_best_blocks(as, &bs, blocks, read_mult, write_mult);
+	   get_best_blocks(as, &bs, blocks, read_mult, write_mult, mean_lifetime);
 
     if (pvmove_output) {
         if (print_le) {

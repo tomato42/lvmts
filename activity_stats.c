@@ -78,36 +78,36 @@ score_decay(float curr_score, uint64_t time, double mean_lifetime) {
 }
 
 static void
-add_block_activity_read(struct block_activity *block, int64_t time, int granularity) {
+add_block_activity_read(struct block_activity *block, int64_t time,
+    double mean_lifetime, double hit_score) {
 
-    // TODO get from params mean lifetime and hit score
     uint64_t time_diff = time - block->read_time;
     if (time_diff <= 0)
-      block->read_score += HIT_SCORE;
+      block->read_score += hit_score;
     else {
         block->read_score = score_decay(block->read_score, time_diff,
-            MEAN_LIFETIME) + HIT_SCORE;
+            mean_lifetime) + hit_score;
         block->read_time = time;
     }
 }
 
 static void
-add_block_activity_write(struct block_activity *block, int64_t time, int granularity) {
+add_block_activity_write(struct block_activity *block, int64_t time,
+    double mean_lifetime, double hit_score) {
 
-    // TODO get from params mean lifetime and hit score
     uint64_t time_diff = time - block->write_time;
     if (time_diff <= 0)
-      block->write_score += HIT_SCORE;
+      block->write_score += hit_score;
     else {
         block->write_score = score_decay(block->write_score, time_diff,
-            MEAN_LIFETIME) + HIT_SCORE;
+            mean_lifetime) + hit_score;
         block->write_time = time;
     }
 }
 
 int
 add_block(struct activity_stats *activity, int64_t off, int64_t time,
-		int granularity, int type) {
+		double mean_lifetime, double hit_score, int type) {
 
 	int ret = 0;
 	struct block_activity *tmp;
@@ -142,9 +142,9 @@ add_block(struct activity_stats *activity, int64_t off, int64_t time,
 	}
 
 	if (type == T_READ)
-		add_block_activity_read(&(activity->block[off]), time, granularity);
+		add_block_activity_read(&(activity->block[off]), time, mean_lifetime, hit_score);
 	else
-		add_block_activity_write(&(activity->block[off]), time, granularity);
+		add_block_activity_write(&(activity->block[off]), time, mean_lifetime, hit_score);
 mutex_cleanup:
 	pthread_mutex_unlock(&activity->mutex);
 
@@ -152,15 +152,17 @@ mutex_cleanup:
 }
 
 int
-add_block_read(struct activity_stats *activity, int64_t off, int64_t time, int granularity) {
+add_block_read(struct activity_stats *activity, int64_t off, int64_t time,
+    double mean_lifetime, double hit_score) {
 
-	return add_block(activity, off, time, granularity, T_READ);
+	return add_block(activity, off, time, mean_lifetime, hit_score, T_READ);
 }
 
 int
-add_block_write(struct activity_stats *activity, int64_t off, int64_t time, int granularity) {
+add_block_write(struct activity_stats *activity, int64_t off, int64_t time,
+    double mean_lifetime, double hit_score) {
 
-	return add_block(activity, off, time, granularity, T_WRITE);
+	return add_block(activity, off, time, mean_lifetime, hit_score, T_WRITE);
 }
 
 struct block_activity*
@@ -196,8 +198,7 @@ get_last_write_time(struct block_activity *ba)
 }
 
 float
-get_block_activity_raw_score(struct block_activity *block, int type,
-    float hit_score, float scale)
+get_block_activity_raw_score(struct block_activity *block, int type)
 {
     assert(type == T_READ || type == T_WRITE);
 
@@ -235,7 +236,8 @@ calculate_score(float read_score,
 }
 
 float
-get_block_score(struct activity_stats *activity, int64_t off, int type) {
+get_block_score(struct activity_stats *activity, int64_t off, int type,
+    double mean_lifetime) {
 
 	double score = 0.0;
 	time_t time_diff;
@@ -251,33 +253,35 @@ get_block_score(struct activity_stats *activity, int64_t off, int type) {
     }
 
     if (time_diff > 0)
-	    score *= exp(-1.0 * time_diff / MEAN_LIFETIME);
+	    score *= exp(-1.0 * time_diff / mean_lifetime);
 
 	return score;
 }
 
 float
-get_block_write_score(struct activity_stats *activity, int64_t off) {
+get_block_write_score(struct activity_stats *activity, int64_t off,
+    double mean_lifetime) {
 
-	return get_block_score(activity, off, T_WRITE);
+	return get_block_score(activity, off, T_WRITE, mean_lifetime);
 }
 
 float
-get_block_read_score(struct activity_stats *activity, int64_t off) {
+get_block_read_score(struct activity_stats *activity, int64_t off,
+    double mean_lifetime) {
 
-	return get_block_score(activity, off, T_READ);
+	return get_block_score(activity, off, T_READ, mean_lifetime);
 }
 
 float
 get_raw_block_read_score(struct block_activity *ba)
 {
-    return get_block_activity_raw_score(ba, T_READ, HIT_SCORE, MEAN_LIFETIME);
+    return get_block_activity_raw_score(ba, T_READ);
 }
 
 float
 get_raw_block_write_score(struct block_activity *ba)
 {
-    return get_block_activity_raw_score(ba, T_WRITE, HIT_SCORE, MEAN_LIFETIME);
+    return get_block_activity_raw_score(ba, T_WRITE);
 }
 
 void
@@ -574,11 +578,13 @@ print_block_scores(struct block_scores *bs, size_t size)
  * 0 to get only writes
  * @val write_multiplier How much are writes more important than reads, provide
  * 0 to get only reads
+ * @val mean_lifetime Exponential time constant in exponential decay
  * @return 0 if everything is OK, non zero if it isn't
  */
 int
 get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
-        size_t size, int read_multiplier, int write_multiplier)
+        size_t size, int read_multiplier, int write_multiplier,
+        double mean_lifetime)
 {
   assert(read_multiplier || write_multiplier);
   int f_ret = 0;
@@ -595,14 +601,14 @@ get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
 
   for (size_t i=0; i<size; i++) {
     block.offset = i;
-    block.score = get_block_read_score(activity, i) * read_multiplier +
-      get_block_write_score(activity, i) * write_multiplier;
+    block.score = get_block_read_score(activity, i, mean_lifetime) * read_multiplier +
+      get_block_write_score(activity, i, mean_lifetime) * write_multiplier;
     add_score_to_block_scores(*bs, i, &block);
   }
 
   for (size_t i=size; i<activity->len; i++) {
-    block.score = get_block_read_score(activity, i) * read_multiplier +
-      get_block_write_score(activity, i) * write_multiplier;
+    block.score = get_block_read_score(activity, i, mean_lifetime) * read_multiplier +
+      get_block_write_score(activity, i, mean_lifetime) * write_multiplier;
     if (block.score > (*bs)[size-1].score) {
       block.offset = i;
       insert_score_to_block_scores(*bs, size, &block);
@@ -626,8 +632,9 @@ no_cleanup:
  * @return 0 if everything is OK, non zero if it isn't
  */
 int
-get_best_blocks_with_max_score(struct activity_stats *activity, struct block_scores **bs,
-        size_t size, int read_multiplier, int write_multiplier, float max_score)
+get_best_blocks_with_max_score(struct activity_stats *activity,
+        struct block_scores **bs, size_t size, int read_multiplier,
+        int write_multiplier, double mean_lifetime, float max_score)
 {
   assert(read_multiplier || write_multiplier);
   int f_ret = 0;
@@ -646,8 +653,8 @@ get_best_blocks_with_max_score(struct activity_stats *activity, struct block_sco
   size_t i=0;
   for (; count<size && count < activity->len; i++) {
     block.offset = i;
-    block.score = get_block_read_score(activity, i) * read_multiplier +
-      get_block_write_score(activity, i) * write_multiplier;
+    block.score = get_block_read_score(activity, i, mean_lifetime) * read_multiplier +
+      get_block_write_score(activity, i, mean_lifetime) * write_multiplier;
     if (block.score > max_score)
 	continue;
     add_score_to_block_scores(*bs, count, &block);
@@ -658,8 +665,8 @@ get_best_blocks_with_max_score(struct activity_stats *activity, struct block_sco
     return f_ret; // there are less qualifying blocks in activity that places in block_scores
 
   for (; i<activity->len; i++) {
-    block.score = get_block_read_score(activity, i) * read_multiplier +
-      get_block_write_score(activity, i) * write_multiplier;
+    block.score = get_block_read_score(activity, i, mean_lifetime) * read_multiplier +
+      get_block_write_score(activity, i, mean_lifetime) * write_multiplier;
     if (block.score > max_score)
 	  continue;
     if (block.score > (*bs)[size-1].score) {

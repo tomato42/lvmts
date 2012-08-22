@@ -50,12 +50,14 @@ void destroy_activity_stats(struct activity_stats *);
 int add_block_read(struct activity_stats *activity,
 		    int64_t off,
 		    int64_t time,
-		    int granularity);
+		    double mean_lifetime,
+            double hit_score);
 
 int add_block_write(struct activity_stats *activity,
 		     int64_t off,
 		     int64_t time,
-		     int granularity);
+		     double mean_lifetime,
+             double hit_score);
 
 /* print statistics to stdout */
 void dump_activity_stats(struct activity_stats *activity);
@@ -66,11 +68,12 @@ int write_activity_stats(struct activity_stats *activity, char *file);
 int read_activity_stats(struct activity_stats **activity, char *file);
 
 int get_best_blocks(struct activity_stats *activity, struct block_scores **bs,
-    size_t size, int read_multiplier, int write_multiplier);
+    size_t size, int read_multiplier, int write_multiplier,
+    double mean_lifetime);
 
 int get_best_blocks_with_max_score(struct activity_stats *activity,
 		struct block_scores **bs, size_t size, int read_multiplier,
-		int write_multiplier, float max_score);
+		int write_multiplier, double mean_lifetime, float max_score);
 
 /**
  * returns reference to activity stats from single block
@@ -113,7 +116,6 @@ float calculate_score(  float read_score,
 /**
  * Return raw read and write scores for single block
  */
-float get_block_activity_raw_score(struct block_activity *block, int type,
-    float hit_score, float scale);
+float get_block_activity_raw_score(struct block_activity *block, int type);
 
 #endif
