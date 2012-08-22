@@ -24,6 +24,10 @@
 #include <math.h>
 #include "activity_stats.h"
 
+#define HALF_LIFE 24*60*60*3.0L
+#define MEAN_LIFETIME (HALF_LIFE/logl(2))
+#define HIT_SCORE 16.0L
+
 struct activity_stats*
 new_activity_stats() {
 
@@ -64,40 +68,41 @@ destroy_activity_stats(struct activity_stats *activity) {
 	free(activity);
 }
 
+float
+score_decay(float curr_score, uint64_t time, double mean_lifetime) {
+    assert(mean_lifetime != 0);
+
+    double score = curr_score; // use double precision for calculation
+    score = score * exp(-1.0 * time / mean_lifetime); // exponential decay
+    return score;
+}
+
 static void
 add_block_activity_read(struct block_activity *block, int64_t time, int granularity) {
 
-	if (block->reads[0].time + granularity >= time
-	    && block->reads[0].hits < HITS_MAX) {
-
-		block->reads[0].hits++;
-		return;
-	}
-
-	memmove(&(block->reads[1]), &(block->reads[0]),
-		sizeof(struct rw_activity) * (HISTORY_LEN - 1));
-	memset(block->reads, 0, sizeof(struct rw_activity));
-
-	block->reads[0].time = time;
-	block->reads[0].hits = 1;
+    // TODO get from params mean lifetime and hit score
+    uint64_t time_diff = time - block->read_time;
+    if (time_diff <= 0)
+      block->read_score += HIT_SCORE;
+    else {
+        block->read_score = score_decay(block->read_score, time_diff,
+            MEAN_LIFETIME) + HIT_SCORE;
+        block->read_time = time;
+    }
 }
 
 static void
 add_block_activity_write(struct block_activity *block, int64_t time, int granularity) {
 
-	if (block->writes[0].time + granularity >= time
-	    && block->writes[0].hits < HITS_MAX) {
-
-		block->writes[0].hits++;
-		return;
-	}
-
-	memmove(&(block->writes[1]), &(block->writes[0]),
-		sizeof(struct rw_activity) * (HISTORY_LEN - 1));
-	memset(block->writes, 0, sizeof(struct rw_activity));
-
-	block->writes[0].time = time;
-	block->writes[0].hits = 1;
+    // TODO get from params mean lifetime and hit score
+    uint64_t time_diff = time - block->write_time;
+    if (time_diff <= 0)
+      block->write_score += HIT_SCORE;
+    else {
+        block->write_score = score_decay(block->write_score, time_diff,
+            MEAN_LIFETIME) + HIT_SCORE;
+        block->write_time = time;
+    }
 }
 
 int
@@ -158,9 +163,6 @@ add_block_write(struct activity_stats *activity, int64_t off, int64_t time, int 
 	return add_block(activity, off, time, granularity, T_WRITE);
 }
 
-#define HIT_SCORE 16.0L
-#define SCALE (pow(2,-15))
-
 struct block_activity*
 get_block_activity(struct activity_stats *activity, off_t off)
 {
@@ -173,17 +175,10 @@ get_last_access_time(struct block_activity *ba, int type)
 {
     time_t last_access = 0;
 
-    int i;
-    for(i=0; i<HISTORY_LEN; i++) {
-        if ((type == T_READ && ba->reads[i].hits == 0)
-            || (type == T_WRITE && ba->writes[i].hits == 0))
-          break;
-
-        if (type == T_READ)
-            last_access = ba->reads[i].time;
-        else
-            last_access = ba->writes[i].time;
-    }
+    if (type == T_READ)
+        last_access = ba->read_time;
+    else
+        last_access = ba->write_time;
 
     return last_access;
 }
@@ -204,67 +199,12 @@ float
 get_block_activity_raw_score(struct block_activity *block, int type,
     float hit_score, float scale)
 {
-    double score = 0.0;
-	time_t last_access = 0;
-	int len = 0;
-	int i;
-	for(i=0; i<HISTORY_LEN; len=i, i++)
-		if ((type == T_READ && block->reads[i].hits == 0)
-		   || (type == T_WRITE && block->writes[i].hits == 0))
-			break;
+    assert(type == T_READ || type == T_WRITE);
 
-	if (type == T_READ) {
-		last_access = block->reads[len].time;
-		score = block->reads[len].hits * hit_score;
-	} else if (type == T_WRITE) {
-		last_access = block->writes[len].time;
-		score = block->writes[len].hits * hit_score;
-	} else {
-		assert(1);
-	}
-
-    if (!len)
-        return score;
-
-    if (!last_access) {
-        fprintf(stderr, "last_access == 0, score: %f, len: %i\n", score, len);
-        for (int i=len; i>=0; i--) {
-            if (type == T_READ)
-                fprintf(stderr, "%i, %i, %i\n", i, block->reads[i].hits, block->reads[i].time);
-            else
-                fprintf(stderr, "%i, %i, %i\n", i, block->writes[i].hits, block->writes[i].time);
-        }
-    }
-
-    assert(last_access);
-
-	time_t time_diff;
-	for(int i=len-1; i>=0; i--) {
-        // calculate how much time passed since previous access
-		if (type == T_READ) {
-			time_diff = block->reads[i].time - last_access;
-			last_access = block->reads[i].time;
-		} else if (type == T_WRITE) {
-			time_diff = block->writes[i].time - last_access;
-			last_access = block->writes[i].time;
-		} else {
-			assert(1);
-            return -1;
-        }
-
-        // "age" past score
-		score *= exp(-1.0 * scale * time_diff);
-
-        // add current score
-		if (type == T_READ) {
-			score += block->reads[i].hits * hit_score;
-		} else if (type == T_WRITE) {
-			score += block->writes[i].hits * hit_score;
-		} else
-			assert (1);
-	}
-
-    return score;
+    if (type == T_READ)
+        return block->read_score;
+    else
+        return block->write_score;
 }
 
 float
@@ -298,66 +238,20 @@ float
 get_block_score(struct activity_stats *activity, int64_t off, int type) {
 
 	double score = 0.0;
-	time_t last_access = 0;
 	time_t time_diff;
-#if 0
-    int len = 0;
-	int i;
-	for(i=0; i<HISTORY_LEN; i++)
-		if ((type == T_READ && activity->block[off].reads[i].hits == 0)
-		   || (type == T_WRITE && activity->block[off].writes[i].hits == 0))
-			break;
-	len = i;
 
-    if (!len)
-        return 0;
+    struct block_activity *ba = get_block_activity(activity, off);
 
-	if (type == T_READ) {
-		last_access = activity->block[off].reads[i].time;
-		score = activity->block[off].reads[i].hits * HIT_SCORE;
-	} else if (type == T_WRITE) {
-		last_access = activity->block[off].writes[i].time;
-		score = activity->block[off].writes[i].hits * HIT_SCORE;
-	} else {
-		assert(1);
-	}
+    if (type == T_READ) {
+        time_diff = time(NULL) - ba->read_time;
+        score = ba->read_score;
+    } else {
+        time_diff = time(NULL) - ba->write_time;
+        score = ba->write_score;
+    }
 
-	for(int i=len-1; i>=0; i--) {
-		if (type == T_READ) {
-			time_diff = activity->block[off].reads[i].time - last_access;
-			last_access = activity->block[off].reads[i].time;
-		} else if (type == T_WRITE) {
-			time_diff = activity->block[off].writes[i].time - last_access;
-			last_access = activity->block[off].writes[i].time;
-		} else
-			assert(1);
-
-		score *= exp(-1.0 * SCALE * time_diff);
-
-		if (type == T_READ) {
-			score += activity->block[off].reads[i].hits * HIT_SCORE;
-		} else if (type == T_WRITE) {
-			score += activity->block[off].writes[i].hits * HIT_SCORE;
-		} else
-			assert (1);
-	}
-#else
-
-    score = get_block_activity_raw_score(get_block_activity(activity, off),
-        type, HIT_SCORE, SCALE);
-
-    if (type == T_READ)
-        last_access = get_last_read_time(get_block_activity(activity, off));
-    else if (type == T_WRITE)
-        last_access = get_last_write_time(get_block_activity(activity, off));
-    else
-        assert(1);
-
-#endif
-
-	time_diff = time(NULL) - last_access;
-
-	score *= exp(-1.0 * SCALE * time_diff);
+    if (time_diff > 0)
+	    score *= exp(-1.0 * time_diff / MEAN_LIFETIME);
 
 	return score;
 }
@@ -377,87 +271,48 @@ get_block_read_score(struct activity_stats *activity, int64_t off) {
 float
 get_raw_block_read_score(struct block_activity *ba)
 {
-    return get_block_activity_raw_score(ba, T_READ, HIT_SCORE, SCALE);
+    return get_block_activity_raw_score(ba, T_READ, HIT_SCORE, MEAN_LIFETIME);
 }
 
 float
 get_raw_block_write_score(struct block_activity *ba)
 {
-    return get_block_activity_raw_score(ba, T_WRITE, HIT_SCORE, SCALE);
+    return get_block_activity_raw_score(ba, T_WRITE, HIT_SCORE, MEAN_LIFETIME);
 }
 
 void
 dump_activity_stats(struct activity_stats *activity) {
 
 	for (size_t i=0; i<activity->len; i++) {
-		if (activity->block[i].reads[0].hits) {
-			printf("block %8lu, last access: %lu, read score:  %e\n",
-				i, activity->block[i].reads[0].time,
-				get_block_read_score(activity, i));
-			for(int j=0; j<HISTORY_LEN; j++) {
-				if (activity->block[i].reads[j].hits == 0)
-					break;
-			//	printf("block read: %lu, time: %lu, hits: %i\n",
-			//		i, (uint64_t)activity->block[i].reads[j].time,
-			//		activity->block[i].reads[j].hits);
-			}
-		}
-		if (activity->block[i].writes[0].hits) {
-			printf("block %8lu, last access: %lu, write score: %e\n",
-				i, activity->block[i].writes[0].time,
-				get_block_write_score(activity, i));
-			for (int j=0; j<HISTORY_LEN; j++) {
-				if (activity->block[i].writes[j].hits == 0)
-					break;
-			//	printf("block write: %lu, time: %lu, hits: %i\n",
-			//		i, (uint64_t)activity->block[i].writes[j].time,
-			//		activity->block[i].writes[j].hits);
-			}
-		}
+		printf("block %8lu, last read:  %lu, read score:  %e\n",
+				i, activity->block[i].read_time,
+                activity->block[i].read_score);
+        printf("block %8lu, last write: %lu, write score: %e\n",
+				i, activity->block[i].write_time,
+                activity->block[i].write_score);
 	}
 }
 
-#define FILE_MAGIC 0xffabb773746d766cULL
+#define FILE_MAGIC 0xefabb773746d766cULL
+#define OLD_MAGIC 0xffabb773746d766cULL
 
 static int
 write_block(struct block_activity *block, FILE *f) {
 	int n;
-	int16_t hits;
-	uint64_t time;
 
-	for(int j=0; j<HISTORY_LEN; j++) {
-		if (block->reads[j].hits == 0) {
-			n = fseek(f, sizeof(uint64_t) + sizeof(int16_t), SEEK_CUR);
-			if (n)
-				return errno;
-		} else {
-			hits = block->reads[j].hits;
-			time = block->reads[j].time;
-			n = fwrite(&time, sizeof(uint64_t), 1, f);
-			if (n != 1)
-				return EIO;
-			n = fwrite(&hits, sizeof(int16_t), 1, f);
-			if (n != 1)
-				return EIO;
-		}
-	}
+    n = fwrite(&block->read_time, sizeof(uint64_t), 1, f);
+    if (n != 1)
+        return EIO;
+    n = fwrite(&block->read_score, sizeof(float), 1, f);
+    if (n != 1)
+        return EIO;
 
-	for(int j=0; j<HISTORY_LEN; j++) {
-		if (block->writes[j].hits == 0) {
-			n = fseek(f, sizeof(uint64_t) + sizeof(int16_t), SEEK_CUR);
-			if (n)
-				return errno;
-		} else {
-			hits = block->writes[j].hits;
-			time = block->writes[j].time;
-			n = fwrite(&time, sizeof(uint64_t), 1, f);
-			if (n != 1)
-				return EIO;
-			n = fwrite(&hits, sizeof(int16_t), 1, f);
-			if (n != 1)
-				return EIO;
-		}
-	}
+    n = fwrite(&block->write_time, sizeof(uint64_t), 1, f);
+    if (n != 1)
+        return EIO;
+    n = fwrite(&block->write_score, sizeof(float), 1, f);
+    if (n != 1)
+        return EIO;
 
 	return 0;
 }
@@ -465,47 +320,44 @@ write_block(struct block_activity *block, FILE *f) {
 static int
 read_block(struct block_activity *block, FILE *f) {
 	int n;
-	int16_t hits;
+	float score;
 	uint64_t time;
 
 	clearerr(f);
 
-	for (int j=0; j<HISTORY_LEN; j++) {
-		n = fread(&time, sizeof(uint64_t), 1, f);
-		if (n != 1) {
-			if (feof(f))
-				return 2;
-			else
-				return 1;
-		}
-		n = fread(&hits, sizeof(int16_t), 1, f);
-		if (n != 1) {
-			if (feof(f))
-				return 2;
-			else
-				return 1;
-		}
-		block->reads[j].hits = hits;
-		block->reads[j].time = time;
-	}
-	for (int j=0; j<HISTORY_LEN; j++) {
-		n = fread(&time, sizeof(uint64_t), 1, f);
-		if (n != 1) {
-			if (feof(f))
-				return 2;
-			else
-				return 1;
-		}
-		n = fread(&hits, sizeof(int16_t), 1, f);
-		if (n != 1) {
-			if (feof(f))
-				return 2;
-			else
-				return 1;
-		}
-		block->writes[j].hits = hits;
-		block->writes[j].time = time;
-	}
+    n = fread(&time, sizeof(uint64_t), 1, f);
+    if (n != 1) {
+        if (feof(f))
+            return 2;
+        else
+            return 1;
+    }
+    n = fread(&score, sizeof(float), 1, f);
+    if (n != 1) {
+        if (feof(f))
+            return 2;
+        else
+            return 1;
+    }
+    block->read_score = score;
+    block->read_time = time;
+
+    n = fread(&time, sizeof(uint64_t), 1, f);
+    if (n != 1) {
+        if (feof(f))
+            return 2;
+        else
+            return 1;
+    }
+    n = fread(&score, sizeof(float), 1, f);
+    if (n != 1) {
+        if (feof(f))
+            return 2;
+        else
+            return 1;
+    }
+    block->write_score = score;
+    block->write_time = time;
 
 	return 0;
 }
@@ -541,14 +393,6 @@ write_activity_stats(struct activity_stats *activity, char *file) {
 	}
 
 	n = fwrite(&(activity->len), sizeof(int64_t), 1, f);
-	if (n != 1) {
-		ret = 1;
-		goto file_cleanup;
-	}
-
-	int32_t hist_len = HISTORY_LEN;
-
-	n = fwrite(&hist_len, sizeof(int32_t), 1, f);
 	if (n != 1) {
 		ret = 1;
 		goto file_cleanup;
@@ -605,8 +449,14 @@ read_activity_stats(struct activity_stats **activity, char *file) {
 		goto file_cleanup;
 	}
 
+    if (magic == OLD_MAGIC) {
+        fprintf(stderr, "Old file format detected. Remove the file and generate new data\n");
+        ret = 1;
+        goto file_cleanup;
+    }
+
 	if (magic != FILE_MAGIC) {
-		fprintf(stderr, "File format error, no magic value present\n");
+		fprintf(stderr, "File format error, magic value incorrect\n");
 		ret = 1;
 		goto file_cleanup;
 	}
@@ -624,21 +474,6 @@ read_activity_stats(struct activity_stats **activity, char *file) {
 		fprintf(stderr, "Out of memory\n");
 		ret = 1;
 		goto file_cleanup;
-	}
-
-	int32_t hist_len;
-
-	n = fread(&hist_len, sizeof(int32_t), 1, f);
-	if (n != 1) {
-		fprintf(stderr, "File read error\n");
-		ret = 1;
-		goto activity_cleanup;
-	}
-
-	if (hist_len != HISTORY_LEN) {
-		fprintf(stderr, "Incompatible file format\n");
-		ret = 1;
-		goto activity_cleanup;
 	}
 
 	fseek(f, sizeof(int32_t)*3, SEEK_CUR);

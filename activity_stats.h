@@ -21,21 +21,14 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define HISTORY_LEN 10
-#define TIME_MAX ((1<<51)-1)
-#define HITS_MAX ((1<<11)-1)
-
 #define T_READ 1
 #define T_WRITE 2
 
-struct rw_activity {
-	uint64_t time:52;
-	uint64_t hits:12;
-};
-
 struct block_activity {
-	struct rw_activity reads[HISTORY_LEN];
-	struct rw_activity writes[HISTORY_LEN];
+    uint64_t read_time;
+    uint64_t write_time;
+    float    read_score;
+    float    write_score;
 };
 
 struct activity_stats {

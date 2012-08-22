@@ -497,6 +497,9 @@ parse_arguments(int argc, char **argv, struct lvmtscd_params *pp) {
 		}
 	}
 
+    if (!pp->config_file)
+      pp->config_file = strdup("doc/sample.conf");
+
 	if (pp->file && pp->lv_dev_name)
 		goto no_output;
 
@@ -539,6 +542,7 @@ main(int argc, char **argv) {
         exit(1);
     }
 
+    free(pp.pp->conf_file_path);
     pp.pp->conf_file_path = pp.config_file;
 
     ret = read_config(pp.pp);
